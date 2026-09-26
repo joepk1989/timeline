@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { resolve } from '$app/paths';
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import DaySheet from '$lib/components/DaySheet.svelte';
@@ -17,10 +18,8 @@
 	import TopBar from '$lib/components/TopBar.svelte';
 
 	/* Theme: follows the system until you pick one. */
-	const dark = matchMedia('(prefers-color-scheme: dark)');
 	let chosen = $state<string | null>(null);
-	try { chosen = localStorage.getItem('tijdlijn.theme'); } catch { /* ignore */ }
-	let systemDark = $state(dark.matches);
+	let systemDark = $state(false);
 	const theme = $derived<'light' | 'dark'>(chosen === 'dark' || chosen === 'light' ? chosen : systemDark ? 'dark' : 'light');
 	$effect(() => {
 		if (chosen) document.documentElement.dataset.theme = chosen;
@@ -31,12 +30,15 @@
 	}
 
 	onMount(async () => {
+		try { chosen = localStorage.getItem('tijdlijn.theme'); } catch { /* ignore */ }
+		const dark = matchMedia('(prefers-color-scheme: dark)');
+		systemDark = dark.matches;
 		dark.addEventListener('change', () => (systemDark = dark.matches));
-		const wanted = new URLSearchParams(location.search).get('t');
+		const wanted = new URLSearchParams(location.search || location.hash.split('?')[1] || '').get('t');
 		await app.start();
 		if (wanted) {
 			app.switchTo(wanted);
-			history.replaceState(null, '', '/');
+			history.replaceState(null, '', resolve('/'));
 		}
 		if (!app.timelines.length) ui.tlEdit = { id: null, first: true };
 	});

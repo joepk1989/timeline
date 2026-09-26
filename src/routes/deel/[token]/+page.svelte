@@ -2,6 +2,7 @@
 	// Opening an invite link: sign in if needed, accept it, then go to the timeline.
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { supabase } from '$lib/supabase';
 	import { acceptShareLink } from '$lib/data/cloud';
@@ -14,7 +15,7 @@
 	async function accept() {
 		try {
 			const id = await acceptShareLink(supabase!, token);
-			goto(`/?t=${id}`, { replaceState: true });
+			goto(resolve('/') + `?t=${id}`, { replaceState: true });
 		} catch (e) {
 			message = e instanceof Error && /ongeldig|verlopen/.test(e.message) ? 'Deze link is ongeldig of verlopen. Vraag om een nieuwe.' : 'Openen lukte niet. Probeer het later opnieuw.';
 			phase = 'error';
@@ -53,9 +54,9 @@
 			<p>Er is een link gestuurd naar <b>{email}</b>. Open hem op dit apparaat, dan kom je vanzelf bij de tijdlijn.</p>
 		{:else if phase === 'nodb'}
 			<p>Delen werkt pas als er een database is gekoppeld.</p>
-			<a href="/">Naar de app</a>
+			<a href={resolve('/')}>Naar de app</a>
 		{:else}
-			<a href="/">Naar de app</a>
+			<a href={resolve('/')}>Naar de app</a>
 		{/if}
 		{#if message}<p class="err" role="alert">{message}</p>{/if}
 	</div>

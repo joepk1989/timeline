@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Invite links and the people a timeline is shared with. Only for the owner, only when signed in.
+	import { resolve } from '$app/paths';
 	import { app } from '$lib/state/app.svelte';
 	import { createShareLink, deleteShareLink, listSharing, removeMember, type Member, type ShareLink } from '$lib/data/cloud';
 	import Btn from './Btn.svelte';
@@ -18,7 +19,7 @@
 	}
 	$effect(() => { refresh(); });
 
-	const url = (token: string) => `${location.origin}/deel/${encodeURIComponent(token)}`;
+	const url = (token: string) => new URL(resolve('/deel/[token]', { token }), location.href).href;
 	async function copy(token: string) {
 		try { await navigator.clipboard.writeText(url(token)); app.toast('Link gekopieerd'); }
 		catch { app.toast('Kopiëren lukte niet. Selecteer de link en kopieer hem zelf.'); }
