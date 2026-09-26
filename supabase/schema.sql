@@ -45,12 +45,13 @@ create table public.timeline_members (
   timeline_id  uuid not null references public.timelines on delete cascade,
   user_id      uuid not null references auth.users on delete cascade,
   role         text not null check (role in ('viewer','editor')),
+  email        text,   -- shown to the owner in the list of people
   primary key (timeline_id, user_id)
 );
 
 -- Invite links, e.g. for grandparents. Opening one while signed in adds you as a member.
 create table public.share_links (
-  token        text primary key default encode(gen_random_bytes(18), 'base64url'),
+  token        text primary key default translate(encode(gen_random_bytes(18), 'base64'), '+/', '-_'),
   timeline_id  uuid not null references public.timelines on delete cascade,
   role         text not null default 'viewer' check (role in ('viewer','editor')),
   expires_at   timestamptz,
@@ -74,10 +75,12 @@ create or replace function public.accept_share_link(p_token text) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare l share_links;
 begin
+  if auth.uid() is null then raise exception 'Log eerst in'; end if;
   select * into l from share_links where token = p_token and (expires_at is null or expires_at > now());
   if not found then raise exception 'Link is ongeldig of verlopen'; end if;
-  insert into timeline_members (timeline_id, user_id, role) values (l.timeline_id, auth.uid(), l.role)
-  on conflict (timeline_id, user_id) do update set role = case when 'editor' in (timeline_members.role, excluded.role) then 'editor' else 'viewer' end;
+  if exists (select 1 from timelines where id = l.timeline_id and owner_id = auth.uid()) then return l.timeline_id; end if;
+  insert into timeline_members (timeline_id, user_id, role, email) values (l.timeline_id, auth.uid(), l.role, auth.jwt() ->> 'email')
+  on conflict (timeline_id, user_id) do update set email = excluded.email, role = case when 'editor' in (timeline_members.role, excluded.role) then 'editor' else 'viewer' end;
   return l.timeline_id;
 end $$;
 
@@ -98,8 +101,13 @@ create policy "see members"    on public.timeline_members for select using (can_
 create policy "owner members"  on public.timeline_members for all
   using (exists (select 1 from timelines where id = timeline_id and owner_id = auth.uid()));
 
+create policy "leave timeline" on public.timeline_members for delete using (user_id = auth.uid());
+
 create policy "owner links" on public.share_links for all
   using (exists (select 1 from timelines where id = timeline_id and owner_id = auth.uid()));
+
+-- Live updates when someone else changes a shared timeline.
+alter publication supabase_realtime add table public.timelines, public.moments;
 
 -- Photos: private bucket, files stored as '<timeline_id>/<file>'.
 insert into storage.buckets (id, name, public) values ('photos', 'photos', false) on conflict do nothing;

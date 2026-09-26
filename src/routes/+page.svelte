@@ -1,73 +1,81 @@
 <script lang="ts">
-	// Starting point: renders the demo timeline with the ported domain logic.
-	// The full interface is rebuilt step by step from prototype/tijdlijn.html (see CLAUDE.md).
-	import { ageLabel, demoTimeline, KINDS, season, today, virtualMoments, whenLabel, yearLine, yearOccurrences } from '$lib';
+	import { onMount } from 'svelte';
+	import { app } from '$lib/state/app.svelte';
+	import { ui } from '$lib/state/ui.svelte';
+	import DaySheet from '$lib/components/DaySheet.svelte';
+	import Editor from '$lib/components/Editor.svelte';
+	import Gallery from '$lib/components/Gallery.svelte';
+	import Icon from '$lib/components/Icon.svelte';
+	import Menu from '$lib/components/Menu.svelte';
+	import Pager from '$lib/components/Pager.svelte';
+	import ShowSetup from '$lib/components/ShowSetup.svelte';
+	import SignIn from '$lib/components/SignIn.svelte';
+	import Slideshow from '$lib/components/Slideshow.svelte';
+	import TimelineEditor from '$lib/components/TimelineEditor.svelte';
+	import TimelinePicker from '$lib/components/TimelinePicker.svelte';
+	import Toast from '$lib/components/Toast.svelte';
+	import TopBar from '$lib/components/TopBar.svelte';
 
-	const now = today();
-	let n = 0;
-	const { timeline, moments } = demoTimeline(now, () => `demo-${n++}`);
-	const all = [...moments, ...virtualMoments(timeline)];
-	const catOf = (id: string) => timeline.categories.find((c) => c.id === id);
+	/* Theme: follows the system until you pick one. */
+	const dark = matchMedia('(prefers-color-scheme: dark)');
+	let chosen = $state<string | null>(null);
+	try { chosen = localStorage.getItem('tijdlijn.theme'); } catch { /* ignore */ }
+	let systemDark = $state(dark.matches);
+	const theme = $derived<'light' | 'dark'>(chosen === 'dark' || chosen === 'light' ? chosen : systemDark ? 'dark' : 'light');
+	$effect(() => {
+		if (chosen) document.documentElement.dataset.theme = chosen;
+	});
+	function toggleTheme() {
+		chosen = theme === 'dark' ? 'light' : 'dark';
+		try { localStorage.setItem('tijdlijn.theme', chosen); } catch { /* ignore */ }
+	}
 
-	let year = $state(now.y);
-	const occs = $derived(yearOccurrences(all, year));
+	onMount(async () => {
+		dark.addEventListener('change', () => (systemDark = dark.matches));
+		const wanted = new URLSearchParams(location.search).get('t');
+		await app.start();
+		if (wanted) {
+			app.switchTo(wanted);
+			history.replaceState(null, '', '/');
+		}
+		if (!app.timelines.length) ui.tlEdit = { id: null, first: true };
+	});
+
+	function add() {
+		ui.menu = { y: app.year, m: app.mode === 'month' ? app.month : null };
+	}
 </script>
 
-<main>
-	<header>
-		<span class="emoji">{KINDS[timeline.kind].emoji}</span>
-		<div>
-			<h1>{timeline.name}</h1>
-			<p>{timeline.scope.from} – {timeline.scope.to}</p>
-		</div>
-	</header>
+<div class="app">
+	<TopBar {theme} ontheme={toggleTheme} />
+	{#if app.ready}
+		<Pager />
+		{#if app.canEdit}
+			<button class="fab" onclick={add}><Icon name="plus" />Toevoegen</button>
+		{:else}
+			<div class="ro">Alleen bekijken</div>
+		{/if}
+	{:else}
+		<div class="loading">Laden…</div>
+	{/if}
+</div>
 
-	<nav aria-label="Jaar kiezen">
-		<button onclick={() => year--} disabled={year <= timeline.scope.from} aria-label="Vorig jaar">‹</button>
-		<h2 class:now={year === now.y}>{year}</h2>
-		<button onclick={() => year++} disabled={year >= timeline.scope.to} aria-label="Volgend jaar">›</button>
-	</nav>
-	{#if yearLine(timeline, year)}<p class="line">{yearLine(timeline, year)}</p>{/if}
-
-	<ol>
-		{#each occs as o (o.moment.id)}
-			{@const cat = catOf(o.moment.categoryId)}
-			<li style:--s={o.m == null ? 'var(--accent)' : `var(--${season(o.m)})`}>
-				<span class="when">{whenLabel(o)}</span>
-				<span class="em">{o.moment.emoji}</span>
-				<div>
-					<strong>{o.moment.title}</strong>
-					<small>
-						{#if cat}<span class="cat" style:--c={cat.color}>{cat.name}</span>{/if}
-						{#if o.moment.repeat && o.age}↻ {o.age} jaar{:else if !o.moment.virtual}{ageLabel(timeline, o.y, o.m, o.d) ?? ''}{/if}
-						{#if o.moment.status}· {o.moment.status}{/if}
-					</small>
-					{#if o.moment.note}<p>{o.moment.note}</p>{/if}
-				</div>
-			</li>
-		{/each}
-	</ol>
-</main>
+{#if ui.picker}<TimelinePicker />{/if}
+{#if ui.menu}<Menu />{/if}
+{#if ui.day}<DaySheet />{/if}
+{#if ui.tlEdit}<TimelineEditor />{/if}
+{#if ui.editor}<Editor />{/if}
+{#if ui.gallery}<Gallery />{/if}
+{#if ui.showSetup}<ShowSetup />{/if}
+{#if ui.account}<SignIn />{/if}
+{#if ui.show}<Slideshow />{/if}
+<Toast />
 
 <style>
-	main { max-width: 860px; margin: 0 auto; padding: 24px 20px 80px; }
-	header { display: flex; gap: 12px; align-items: center; }
-	header .emoji { font-size: 32px; }
-	h1 { font-size: 20px; margin: 0; }
-	header p { margin: 0; color: var(--muted); font-size: 14px; }
-	nav { display: flex; align-items: center; gap: 16px; margin-top: 24px; }
-	nav button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 22px; cursor: pointer; }
-	nav button:disabled { opacity: 0.3; cursor: default; }
-	h2 { margin: 0; font-size: clamp(72px, 16vw, 150px); font-weight: 800; letter-spacing: -0.05em; line-height: 0.9; }
-	h2.now { color: var(--accent); }
-	.line { color: var(--accent); font-weight: 600; margin: 8px 0 20px; }
-	ol { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
-	li { display: grid; grid-template-columns: 110px 28px 1fr; gap: 12px; padding: 10px 0; }
-	.when { border-left: 4px solid var(--s); padding-left: 12px; color: var(--muted); font-size: 14px; }
-	.em { font-size: 22px; text-align: center; }
-	strong { font-size: 18px; display: block; }
-	small { color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
-	.cat { color: var(--ink); font-weight: 600; }
-	.cat::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 5px; }
-	li p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+	.app { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; padding-top: env(safe-area-inset-top, 0px); }
+	.loading { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+	.fab { position: fixed; right: max(20px, env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 6; height: 56px; padding: 0 22px; border-radius: 999px; border: none; background: var(--ink); color: var(--surface); font: inherit; font-weight: 600; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 8px 24px rgba(10, 20, 30, 0.25); cursor: pointer; }
+	.ro { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 6; padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 14px; font-weight: 600; }
+	@media (min-width: 2300px) and (min-height: 1250px) { .fab { zoom: 1.25; } }
+	@media (min-width: 3200px) and (min-height: 1400px) { .fab { zoom: 1.5; } }
 </style>
