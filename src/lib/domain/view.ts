@@ -1,6 +1,6 @@
 import { ageLabel } from './age';
 import { dayNumber, daysBetween, daysInMonth, parseDate } from './dates';
-import { inMonth, isOverdue, virtualMoments } from './occurrences';
+import { covers, inMonth, isOverdue, virtualMoments } from './occurrences';
 import type { Day, Moment, Occurrence, Status, Timeline } from './types';
 
 export interface Scope {
@@ -98,3 +98,26 @@ export const isFuture = (o: Occurrence, now: Day) => endNumber(o) >= dayNumber(n
 
 export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 export const momentsLabel = (n: number) => plural(n, 'moment', 'momenten');
+
+export interface GridDay {
+	d: number;
+	/** 0 = Sunday. */
+	wd: number;
+	weekend: boolean;
+	today: boolean;
+	/** Occurrences that fall on or cover this day. */
+	here: Occurrence[];
+	/** Covered by a period (a trip, a renovation). */
+	inPeriod: boolean;
+}
+
+/** The days of a month with what happens on them, plus how many empty cells come first in a Monday-first grid. */
+export function monthGrid(occs: Occurrence[], y: number, m: number, now: Day): { lead: number; days: GridDay[] } {
+	const lead = (new Date(y, m, 1).getDay() + 6) % 7;
+	const days = Array.from({ length: daysInMonth(y, m) }, (_, i) => {
+		const d = i + 1, wd = new Date(y, m, d).getDay();
+		const here = occs.filter((o) => covers(o, y, m, d));
+		return { d, wd, weekend: wd === 0 || wd === 6, today: y === now.y && m === now.m && d === now.d, here, inPeriod: here.some((o) => !!o.end) };
+	});
+	return { lead, days };
+}

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { MONTHS, MONTHS_SHORT, season } from '$lib/domain/dates';
-	import { yearLine } from '$lib/domain/age';
+		import { yearLine } from '$lib/domain/age';
 	import { STATUSES } from '$lib/domain/kinds';
 	import { isOverdue, yearOccurrences } from '$lib/domain/occurrences';
-	import { momentsLabel, monthOccurrences } from '$lib/domain/view';
+	import { momentsLabel } from '$lib/domain/view';
 	import Content from './Content.svelte';
+	import MonthAccordion from './MonthAccordion.svelte';
 
 	let { y }: { y: number } = $props();
 	const occs = $derived(yearOccurrences(app.visible, y));
@@ -31,19 +31,8 @@
 		{#if stats.length}
 			<div class="stsum">{#each stats as s (s.name)}<span class="sst" style:--c={s.color}>{s.n} {s.name}</span>{/each}</div>
 		{/if}
-		<div class="seasons">
-			{#each MONTHS_SHORT as short, m (m)}
-				{@const c = monthOccurrences(real, y, m).length}
-				<button
-					class:has={c > 0}
-					class:cur={y === app.now.y && m === app.now.m}
-					style:--s="var(--{season(m)})"
-					aria-label="Zoom in op {MONTHS[m]} {y}{c ? ', ' + momentsLabel(c) : ''}"
-					onclick={() => app.enterMonth(y, m)}
-				><span>{short}</span><span class="c">{c || ''}</span></button>
-			{/each}
-		</div>
-		<p class="tip">Tik op een maand om in te zoomen</p>
+		<MonthAccordion {y} {occs} />
+		<p class="tip">Tik op een maand om de dagen te zien</p>
 	</div>
 	<div class="pr">
 		<Content {occs} emptyTitle="Nog niets vastgelegd in {y}" emptySub="Maak het jaar, een maand of een dag bijzonder." onadd={() => (ui.menu = { y, m: null })} />
@@ -59,16 +48,9 @@
 	.stsum { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: -8px 0 18px; font-size: 14px; }
 	.sst { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: var(--c); }
 	.sst::before { content: ''; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
-	.seasons { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-bottom: 6px; }
-	.seasons button { --s: var(--winter); height: 44px; border: none; border-radius: 6px; padding: 4px 0 0; background: color-mix(in srgb, var(--s) 30%, transparent); display: flex; flex-direction: column; align-items: center; justify-content: space-between; font: inherit; font-size: 11px; color: var(--ink); overflow: hidden; cursor: pointer; }
-	.seasons button::after { content: ''; align-self: stretch; height: 4px; background: var(--s); }
-	.seasons .c { font-size: 11px; font-weight: 800; line-height: 1; min-height: 11px; }
-	.seasons button.has { background: var(--s); color: #fff; }
-	.seasons button.cur { outline: 2px solid var(--ink); outline-offset: 1px; }
 	.tip { font-size: 12px; color: var(--muted); margin: 0 0 20px; }
 	@media (max-width: 640px) {
 		.page-in { padding: 14px 14px 110px; }
-		.seasons button { font-size: 9px; }
 	}
 	@media (min-width: 1200px) {
 		.page-in { max-width: none; padding: 3vh 3vw 120px; }
@@ -77,7 +59,6 @@
 		.pr { padding-top: 2vh; }
 		.big { font-size: min(40cqi, 300px); }
 		.count { margin-top: 16px; }
-		.seasons button { height: clamp(52px, 6vh, 80px); font-size: 13px; }
 		.tip { margin-bottom: 0; }
 	}
 	@media (min-width: 2300px) and (min-height: 1250px) { .page-in { zoom: 1.25; } }
