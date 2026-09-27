@@ -62,4 +62,8 @@
 	.nav:disabled { opacity: 0; pointer-events: none; }
 	@media (hover: none), (max-width: 640px) { .nav { display: none; } }
 	@media (min-width: 1200px) { .prev { left: 1vw; } .next { right: 1vw; } }
+
+	/* Hover */
+	.nav { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) { .nav:hover { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); border-color: var(--muted); } }
 </style>

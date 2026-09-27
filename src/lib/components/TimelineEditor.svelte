@@ -127,4 +127,12 @@
 	.sw { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); flex: 0 0 auto; padding: 0; cursor: pointer; }
 	.x { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); flex: 0 0 auto; cursor: pointer; }
 	.x:disabled { opacity: 0.4; cursor: default; }
+
+	/* Hover */
+	.type, .sw, .x { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.type:hover { background: var(--hover); }
+		.sw:hover { box-shadow: 0 0 0 2px var(--muted); }
+		.x:hover:not(:disabled) { background: var(--hover); border-color: var(--muted); }
+	}
 </style>

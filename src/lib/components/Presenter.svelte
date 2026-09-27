@@ -261,4 +261,11 @@
 		.cbtn { height: 38px; min-width: 38px; }
 	}
 	@media (prefers-reduced-motion: reduce) { .moment { animation: none; } }
+
+	/* Hover */
+	.cbtn { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.cbtn:hover { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); border-color: var(--muted); }
+		.cbtn.solid:hover { background: color-mix(in srgb, var(--ink) 85%, var(--surface)); border-color: color-mix(in srgb, var(--ink) 85%, var(--surface)); }
+	}
 </style>

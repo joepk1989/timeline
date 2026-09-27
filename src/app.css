@@ -3,6 +3,9 @@
 	--bg: #eef0eb; --surface: #ffffff; --ink: #1d2733; --muted: #5e6a76; --line: #d4d9d2; --faint: #e3e6e0;
 	--accent: #2b4a7e; --accent-ink: #ffffff; --weekend: #f4f5f1; --danger: #b3261e;
 	--winter: #6e9cc4; --lente: #7db35a; --zomer: #edb032; --herfst: #9c5b2e;
+	/* Hover: a light tint over a button, or a filter for coloured ones. Only used under (hover: hover). */
+	--hover: color-mix(in srgb, var(--ink) 7%, transparent);
+	--hover-filter: brightness(0.95);
 	color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -10,6 +13,7 @@
 		--bg: #141920; --surface: #1d242d; --ink: #e7ebee; --muted: #98a3af; --line: #2e3843; --faint: #232b35;
 		--accent: #9bbbf2; --accent-ink: #111822; --weekend: #181e26; --danger: #f2867e;
 		--winter: #7faad0; --lente: #8cc468; --zomer: #f0b942; --herfst: #c27a45;
+		--hover-filter: brightness(1.15);
 		color-scheme: dark;
 	}
 }
@@ -17,6 +21,7 @@
 	--bg: #141920; --surface: #1d242d; --ink: #e7ebee; --muted: #98a3af; --line: #2e3843; --faint: #232b35;
 	--accent: #9bbbf2; --accent-ink: #111822; --weekend: #181e26; --danger: #f2867e;
 	--winter: #7faad0; --lente: #8cc468; --zomer: #f0b942; --herfst: #c27a45;
+	--hover-filter: brightness(1.15);
 	color-scheme: dark;
 }
 html { height: 100%; }

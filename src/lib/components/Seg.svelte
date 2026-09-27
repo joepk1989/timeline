@@ -12,4 +12,8 @@
 	div { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; align-self: flex-start; background: var(--surface); }
 	button { padding: 7px 14px; border: none; background: transparent; font: inherit; font-weight: 600; font-size: 14px; color: var(--ink); cursor: pointer; }
 	.on { background: var(--ink); color: var(--surface); }
+
+	/* Hover */
+	button { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) { button:hover:not(.on) { background: var(--hover); } }
 </style>

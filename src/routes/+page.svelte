@@ -78,4 +78,8 @@
 	.ro { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 6; padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 14px; font-weight: 600; }
 	@media (min-width: 2300px) and (min-height: 1250px) { .fab { zoom: 1.25; } }
 	@media (min-width: 3200px) and (min-height: 1400px) { .fab { zoom: 1.5; } }
+
+	/* Hover */
+	.fab { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) { .fab:hover { background: color-mix(in srgb, var(--ink) 85%, var(--surface)); box-shadow: 0 10px 28px rgba(10, 20, 30, 0.3); } }
 </style>

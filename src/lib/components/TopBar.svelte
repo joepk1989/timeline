@@ -102,7 +102,7 @@
 <style>
 	header { flex: 0 0 auto; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
 	.in { max-width: 1000px; margin: 0 auto; padding: 12px 20px 8px; display: flex; align-items: center; gap: 10px; }
-	.tl { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: none; background: transparent; text-align: left; padding: 4px 6px 4px 0; border-radius: 10px; font: inherit; color: inherit; cursor: pointer; }
+	.tl { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: none; background: transparent; text-align: left; padding: 4px 8px; margin-left: -8px; border-radius: 10px; font: inherit; color: inherit; cursor: pointer; }
 	.tl .em { font-size: 26px; line-height: 1; flex: 0 0 auto; }
 	.txt { min-width: 0; display: flex; flex-direction: column; }
 	.txt b { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -130,4 +130,11 @@
 	}
 	@media (min-width: 2300px) and (min-height: 1250px) { header { zoom: 1.25; } }
 	@media (min-width: 3200px) and (min-height: 1400px) { header { zoom: 1.5; } }
+
+	/* Hover */
+	.tl, .tick { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.tl:hover { background: var(--hover); }
+		.tick:hover { filter: brightness(0.8); }
+	}
 </style>

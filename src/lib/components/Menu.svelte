@@ -279,4 +279,12 @@
 	.note { font-size: 13px; color: var(--muted); padding: 0 16px 16px; margin: 0; }
 	.note.flat { padding: 0; }
 	@media (min-width: 2300px) and (min-height: 1250px) { .in { zoom: 1.25; } }
+
+	/* Hover */
+	.chip, .yr, .mo, .dy, .mini { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.chip:hover, .mini:hover { background: var(--hover); border-color: var(--muted); }
+		.yr:hover:not(.sel), .dy:hover:not(.sel) { background: var(--hover); }
+		.mo:hover:not(.sel) { filter: var(--hover-filter); }
+	}
 </style>

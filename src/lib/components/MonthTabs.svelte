@@ -222,4 +222,12 @@
 		.n { font-size: 14px; width: 28px; height: 28px; }
 		.e { font-size: 18px; }
 	}
+
+	/* Hover */
+	.tab, .bar, .zoom, .day { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.tab:hover:not(.on) { filter: var(--hover-filter); }
+		.bar:hover { filter: var(--hover-filter); }
+		.zoom:hover { text-decoration: underline; text-underline-offset: 3px; }
+	}
 </style>

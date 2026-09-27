@@ -237,4 +237,13 @@
 	.addph { width: 84px; height: 84px; border: 1px dashed var(--muted); border-radius: 8px; background: transparent; font: inherit; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; }
 	.addph b { font-size: 22px; font-weight: 400; line-height: 1; }
 	.note { margin: 0; white-space: pre-wrap; }
+
+	/* Hover */
+	.emojis button, .x, .addph, .open { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.emojis button:hover:not(.on) { background: var(--hover); }
+		.open:hover { filter: var(--hover-filter); }
+		.x:hover { background: var(--danger); }
+		.addph:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+	}
 </style>

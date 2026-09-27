@@ -49,4 +49,11 @@
 	.tx b { display: block; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.tx small { color: var(--muted); font-size: 13px; }
 	.set { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+
+	/* Hover */
+	.row, .set { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.row:hover:not(.on) { border-color: var(--muted); }
+		.set:hover { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); border-color: var(--muted); }
+	}
 </style>

@@ -30,6 +30,7 @@ Run `npm test` and `npm run check` before every commit.
 - Keep domain logic in `src/lib/domain` as pure functions with tests. Components only render.
 - Dates keep their precision as strings: `YYYY`, `YYYY-MM`, `YYYY-MM-DD`. Months are 0-based in code, 1-based in strings.
 - User-facing text is Dutch and plain. No jargon in the UI.
+- Every button gets a subtle hover under `@media (hover: hover)`, using the `--hover` and `--hover-filter` tokens.
 - Respect `prefers-reduced-motion`, support keyboard and screen readers, test on a phone width (390px) and a wide monitor.
 
 ## Roadmap

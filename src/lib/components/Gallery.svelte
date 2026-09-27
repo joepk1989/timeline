@@ -62,4 +62,8 @@
 	.n { right: 12px; }
 	.nav:disabled { opacity: 0; pointer-events: none; }
 	@media (hover: none), (max-width: 640px) { .nav { display: none; } }
+
+	/* Hover */
+	.nav { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) { .nav:hover { background: rgba(255, 255, 255, 0.26); } }
 </style>
