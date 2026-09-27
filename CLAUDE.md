@@ -4,10 +4,13 @@ A timeline app for a life, a child, a house, a relationship, a business or a pla
 
 ## Where things are
 
-- `prototype/tijdlijn.html` is the working single-file prototype (built in claude.ai). **It is the functional spec**: when in doubt about how something should look or behave, open it in a browser and match it. Do not keep adding to it.
-- `src/lib/domain/` holds the pure logic, already ported and tested: dates, timeline kinds, ages, occurrences (repeats, periods, overdue), demo data. No DOM, no globals: "today" is passed in.
-- `supabase/schema.sql` is the database: timelines, moments, members, share links, private photo bucket, row level security.
-- `src/routes/+page.svelte` is a minimal starting page that renders the demo with the domain logic.
+- `prototype/tijdlijn.html` is the original single-file prototype (built in claude.ai). **It is the functional spec**: when in doubt about how something should look or behave, open it in a browser and match it. Do not keep adding to it.
+- `src/lib/domain/` holds the pure logic with tests: dates, timeline kinds, ages, occurrences (repeats, periods, overdue), view helpers (filters, scope, labels), slides and the year-slide layout, backup parsing (also the prototype's v3 format), print and standalone presentation HTML, EXIF date, zip. No DOM, no globals: "today" is passed in.
+- `src/lib/data/` is storage behind one `Backend` interface: `local.ts` (localStorage + IndexedDB for photos) and `cloud.ts` (Supabase tables, storage, realtime, share links). `photos.ts` resizes photos and reads their date.
+- `src/lib/state/app.svelte.ts` is the app state (runes): data, current timeline, filter, scope, pager position, and the actions that save. `ui.svelte.ts` says which sheet or dialog is open.
+- `src/lib/components/` are the screens: `TopBar`, `Pager` with `YearPage`/`MonthPage`, `Content`/`MomentRow`, `Menu`, `Editor`, `DaySheet`, `TimelinePicker`, `TimelineEditor` + `ShareBox`, `Gallery`, `ShowSetup`, `Slideshow` + `YearSlide`, `SignIn`, `Toast`. Small building blocks: `Btn`, `Chip`, `Seg`, `Dialog`, `Photo`, `Icon`.
+- `src/routes/+page.svelte` puts it together; `src/routes/deel/[token]` accepts an invite link. The app runs client-side only (`ssr = false`).
+- `supabase/schema.sql` is the database: timelines, moments, members, share links, private photo bucket, row level security, realtime.
 
 ## Stack
 
@@ -23,13 +26,15 @@ Run `npm test` and `npm run check` before every commit.
 
 ## Conventions
 
-- Component styles stay scoped in their `.svelte` file. Only design tokens live in `src/app.css`. (The prototype broke twice from global class names colliding, e.g. `.year` and `.month`.)
+- Component styles stay scoped in their `.svelte` file. Only design tokens live in `src/app.css`. Form styles for dialogs live in `Dialog.svelte`, scoped under `.card`. (The prototype broke twice from global class names colliding, e.g. `.year` and `.month`.)
 - Keep domain logic in `src/lib/domain` as pure functions with tests. Components only render.
 - Dates keep their precision as strings: `YYYY`, `YYYY-MM`, `YYYY-MM-DD`. Months are 0-based in code, 1-based in strings.
 - User-facing text is Dutch and plain. No jargon in the UI.
 - Respect `prefers-reduced-motion`, support keyboard and screen readers, test on a phone width (390px) and a wide monitor.
 
 ## Roadmap
+
+Steps 1 to 6 are built. Supabase login, sharing and realtime are written against the schema but still need a check against a real project.
 
 1. **Core views**: year pager with swipe, seasons bar, month view (calendar and the one-row accordion), day sheet, editor. Match the prototype.
 2. **Supabase**: sign in (magic link), load and save timelines and moments, realtime updates, the demo loader.

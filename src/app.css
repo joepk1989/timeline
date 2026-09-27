@@ -1,0 +1,33 @@
+/* Design tokens shared by every component. Component styles stay scoped inside each .svelte file. */
+:root {
+	--bg: #eef0eb; --surface: #ffffff; --ink: #1d2733; --muted: #5e6a76; --line: #d4d9d2; --faint: #e3e6e0;
+	--accent: #2b4a7e; --accent-ink: #ffffff; --weekend: #f4f5f1; --danger: #b3261e;
+	--winter: #6e9cc4; --lente: #7db35a; --zomer: #edb032; --herfst: #9c5b2e;
+	color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--bg: #141920; --surface: #1d242d; --ink: #e7ebee; --muted: #98a3af; --line: #2e3843; --faint: #232b35;
+		--accent: #9bbbf2; --accent-ink: #111822; --weekend: #181e26; --danger: #f2867e;
+		--winter: #7faad0; --lente: #8cc468; --zomer: #f0b942; --herfst: #c27a45;
+		color-scheme: dark;
+	}
+}
+:root[data-theme='dark'] {
+	--bg: #141920; --surface: #1d242d; --ink: #e7ebee; --muted: #98a3af; --line: #2e3843; --faint: #232b35;
+	--accent: #9bbbf2; --accent-ink: #111822; --weekend: #181e26; --danger: #f2867e;
+	--winter: #7faad0; --lente: #8cc468; --zomer: #f0b942; --herfst: #c27a45;
+	color-scheme: dark;
+}
+html { height: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+	margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+	font-family: 'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	font-size: 16px; line-height: 1.45; -webkit-font-smoothing: antialiased;
+	transition: background-color 0.25s, color 0.25s;
+}
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
