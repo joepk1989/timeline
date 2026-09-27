@@ -1,6 +1,7 @@
 <script lang="ts">
-	// The twelve months of a year side by side. Tap a month to fold it open and see its days;
-	// tap a day for what happened, or open the whole month.
+	// The twelve months of a year side by side. Hover a month (or tap it) and it folds open to
+	// most of the width, with its days inline. Tap a day for what happened, or open the whole month.
+	import { tick } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { labelFull, MONTHS, MONTHS_SHORT, season, SEASON_NAMES } from '$lib/domain/dates';
@@ -23,17 +24,24 @@
 			return { m, name, s: season(m), count: real.length, emojis: [...new Set(here.map((o) => o.moment.emoji))].slice(0, 3) };
 		})
 	);
-	const grid = $derived(open == null ? null : monthGrid(occs, y, open, app.now));
-	const age = $derived(open == null ? null : ageLabel(app.tl, y, open, null));
+	/** Month under the mouse or keyboard focus; it wins over the one opened by a tap. */
+	let hover = $state<number | null>(null);
+	const active = $derived(hover ?? open);
+	const grid = $derived(active == null ? null : monthGrid(occs, y, active, app.now));
+	const age = $derived(active == null ? null : ageLabel(app.tl, y, active, null));
 
-	function toggle(m: number) {
-		open = open === m ? null : m;
+	async function toggle(m: number, head: HTMLElement) {
+		open = active === m ? null : m;
+		hover = null;
+		// When the month opens inline its header button is hidden: move focus to the month title.
+		await tick();
+		if (open === m && !head.checkVisibility()) head.parentElement?.querySelector<HTMLElement>('.title')?.focus();
 	}
 </script>
 
 {#snippet days(m: number, grid: MonthGridT)}
 	<div class="body" style:--s="var(--{season(m)})">
-		<button class="title" aria-expanded="true" aria-label="{MONTHS[m]} {y}. Dichtvouwen" onclick={() => (open = null)}>
+		<button class="title" aria-expanded="true" aria-label="{MONTHS[m]} {y}. Dichtvouwen" onclick={() => { open = null; hover = null; }}>
 			<b>{MONTHS[m]}</b><small>{SEASON_NAMES[season(m)]}{age && age !== app.kind.before ? ` · ${age}` : ''}{months[m].count ? ` · ${momentsLabel(months[m].count)}` : ''}</small>
 		</button>
 					<div class="cal">
@@ -51,6 +59,7 @@
 							>
 								<span class="n">{day.d}</span>
 								{#if day.here.some((o) => !o.end)}<span class="e" aria-hidden="true">{day.here.find((o) => !o.end)!.moment.emoji}</span>{/if}
+								{#each day.here.filter((o) => !o.end).slice(0, 2) as o (o.moment.id)}<span class="t" aria-hidden="true">{o.moment.emoji} {o.moment.title}</span>{/each}
 							</button>
 						{/each}
 					</div>
@@ -59,25 +68,30 @@
 {/snippet}
 
 <div class="wrap">
-<div class="row">
+<div class="row" role="group" aria-label="Maanden van {y}" onpointerleave={(e) => e.pointerType === 'mouse' && (hover = null)}>
 	{#each months as mo (mo.m)}
-		<div class="col" class:open={open === mo.m} class:has={mo.count > 0} class:cur={y === app.now.y && mo.m === app.now.m} style:--s="var(--{mo.s})">
+		<div
+			class="col"
+			class:open={active === mo.m}
+			role="presentation"
+			onpointerenter={(e) => e.pointerType === 'mouse' && (hover = mo.m)}
+			class:has={mo.count > 0} class:cur={y === app.now.y && mo.m === app.now.m} style:--s="var(--{mo.s})">
 			<button
 				class="head"
-				aria-expanded={open === mo.m}
-				aria-label="{MONTHS[mo.m]} {y}{mo.count ? ', ' + momentsLabel(mo.count) : ''}. {open === mo.m ? 'Dichtvouwen' : 'Dagen tonen'}"
-				onclick={() => toggle(mo.m)}
+				aria-expanded={active === mo.m}
+				aria-label="{MONTHS[mo.m]} {y}{mo.count ? ', ' + momentsLabel(mo.count) : ''}. {active === mo.m ? 'Dichtvouwen' : 'Dagen tonen'}"
+				onclick={(e) => toggle(mo.m, e.currentTarget)}
 			>
 				<span class="short">{MONTHS_SHORT[mo.m]}</span>
 				<span class="c">{mo.count || ''}</span>
 				<span class="es" aria-hidden="true">{#each mo.emojis as e (e)}<span>{e}</span>{/each}</span>
 			</button>
-			{#if open === mo.m && grid}<div class="inline">{@render days(mo.m, grid)}</div>{/if}
+			{#if active === mo.m && grid}<div class="inline">{@render days(mo.m, grid)}</div>{/if}
 			<span class="bar" aria-hidden="true"></span>
 		</div>
 	{/each}
 </div>
-{#if open != null && grid}<div class="below">{@render days(open, grid)}</div>{/if}
+{#if active != null && grid}<div class="below">{@render days(active, grid)}</div>{/if}
 </div>
 
 <style>
@@ -93,9 +107,9 @@
 	.col.open .head { color: #fff; }
 	.inline { display: none; }
 	.below { margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-	/* Wide enough: the month folds open in the row itself, the other months stay visible. */
+	/* Wide enough: the month folds open in the row itself to about 80% (44 / (44 + 11)), the other months stay visible. */
 	@container (min-width: 460px) {
-		.col.open { flex: 0 0 min(calc(100% - 11 * 25px - 4px), 520px); min-width: 0; background: var(--surface); outline: none; box-shadow: inset 0 0 0 1px var(--line); }
+		.col.open { flex-grow: 44; min-width: 0; background: var(--surface); outline: none; box-shadow: inset 0 0 0 1px var(--line); }
 		.col.open .head { display: none; }
 		.inline { display: block; padding-top: 4px; }
 		.below { display: none; }
@@ -111,7 +125,7 @@
 	.title b { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; text-transform: capitalize; line-height: 1.1; }
 	.title small { font-size: 12px; color: var(--muted); }
 
-	.body { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 8px; animation: fade 0.25s 0.1s both; }
+	.body { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 8px; animation: fade 0.25s 0.2s both; }
 	@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 	.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
 	.wh { font-size: 10px; color: var(--muted); text-align: center; }
@@ -122,6 +136,7 @@
 	.day.today { outline: 2px solid var(--accent); outline-offset: -2px; }
 	.n { font-size: 12px; font-weight: 700; line-height: 1.1; }
 	.e { font-size: 12px; line-height: 1.1; }
+	.t { display: none; }
 	.zoom { align-self: flex-start; border: none; background: transparent; padding: 2px 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; }
 
 	/* Full width: the closed months get room for their full name, the days a fixed height. */
@@ -129,9 +144,11 @@
 		.short { font-size: 14px; font-weight: 600; }
 		.c { font-size: 15px; }
 		.es { flex-direction: row; flex-wrap: wrap; justify-content: center; font-size: 16px; gap: 2px; }
-		.day { aspect-ratio: auto; height: 46px; }
+		/* Days are wide now: show the moments by name. */
+		.day { aspect-ratio: auto; height: 64px; align-items: flex-start; padding: 4px 7px; gap: 2px; text-align: left; }
 		.n { font-size: 14px; }
-		.e { font-size: 15px; }
+		.e { display: none; }
+		.t { display: block; max-width: 100%; font-size: 12px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	}
 	@media (min-width: 1200px) {
 		.row { min-height: clamp(72px, 8vh, 110px); }

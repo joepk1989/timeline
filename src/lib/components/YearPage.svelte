@@ -9,6 +9,7 @@
 	import MonthAccordion from './MonthAccordion.svelte';
 
 	let { y }: { y: number } = $props();
+	const canHover = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 	const occs = $derived(yearOccurrences(app.visible, y));
 	const real = $derived(occs.filter((o) => !o.moment.virtual));
 	const line = $derived(yearLine(app.tl, y));
@@ -34,7 +35,7 @@
 	</div>
 	<div class="acc">
 		<MonthAccordion {y} {occs} />
-		<p class="tip">Tik op een maand om de dagen te zien</p>
+		<p class="tip">{canHover ? 'Beweeg over een maand om de dagen te zien, klik om hem open te houden' : 'Tik op een maand om de dagen te zien'}</p>
 	</div>
 	<div class="list">
 		<Content {occs} emptyTitle="Nog niets vastgelegd in {y}" emptySub="Maak het jaar, een maand of een dag bijzonder." onadd={() => (ui.menu = { y, m: null })} />
