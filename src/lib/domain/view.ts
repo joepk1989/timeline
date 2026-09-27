@@ -121,3 +121,37 @@ export function monthGrid(occs: Occurrence[], y: number, m: number, now: Day): {
 	});
 	return { lead, days };
 }
+
+export interface MonthBar {
+	o: Occurrence;
+	/** First and last day of the bar within the month. */
+	from: number;
+	to: number;
+	/** Row, so overlapping periods do not cover each other. */
+	lane: number;
+	/** The period started before this month / goes on after it. */
+	before: boolean;
+	after: boolean;
+}
+
+/** Periods in a month as bars under the days, spread over at most `lanes` rows. */
+export function monthBars(occs: Occurrence[], y: number, m: number, lanes = 3): MonthBar[] {
+	const dim = daysInMonth(y, m), first = dayNumber(y, m, 1), last = dayNumber(y, m, dim);
+	const periods = occs
+		.filter((o) => o.end && o.m != null && o.d != null && inMonth(o, y, m))
+		.map((o) => ({ o, s: dayNumber(o.y, o.m!, o.d!), e: dayNumber(o.end!.y, o.end!.m, o.end!.d) }))
+		.sort((a, b) => a.s - b.s || b.e - a.e);
+	const ends: number[] = [];
+	const out: MonthBar[] = [];
+	for (const { o, s, e } of periods) {
+		const from = s < first ? 1 : o.d!, to = e > last ? dim : o.end!.d;
+		let lane = ends.findIndex((x) => x < from);
+		if (lane < 0) {
+			if (ends.length >= lanes) continue;
+			lane = ends.length;
+		}
+		ends[lane] = to;
+		out.push({ o, from, to, lane, before: s < first, after: e > last });
+	}
+	return out;
+}

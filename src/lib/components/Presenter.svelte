@@ -11,7 +11,7 @@
 	import { momentSlides, type ShowWhat } from '$lib/domain/slides';
 	import { momentsLabel, relParts } from '$lib/domain/view';
 	import Icon from './Icon.svelte';
-	import MonthAccordion from './MonthAccordion.svelte';
+	import MonthTabs from './MonthTabs.svelte';
 	import Photo from './Photo.svelte';
 
 	const KEY = 'tijdlijn.show';
@@ -198,7 +198,7 @@
 	</main>
 
 	<div class="months" style:view-transition-name="pres-months">
-		<MonthAccordion {y} {occs} {focus} onmonth={jumpMonth} onday={jumpDay} />
+		<MonthTabs {y} {occs} {focus} onmonth={jumpMonth} onday={jumpDay} />
 	</div>
 </div>
 

@@ -6,7 +6,7 @@
 	import { isOverdue, yearOccurrences } from '$lib/domain/occurrences';
 	import { momentsLabel } from '$lib/domain/view';
 	import Content from './Content.svelte';
-	import MonthAccordion from './MonthAccordion.svelte';
+	import MonthTabs from './MonthTabs.svelte';
 
 	let { y }: { y: number } = $props();
 	// Only the page on screen takes part in the morph into presenting (names must be unique).
@@ -36,8 +36,8 @@
 		{/if}
 	</div>
 	<div class="acc" style:view-transition-name={morphs ? 'pres-months' : null}>
-		<MonthAccordion {y} {occs} />
-		<p class="tip">{canHover ? 'Beweeg over een maand om de dagen te zien, klik om hem open te houden' : 'Tik op een maand om de dagen te zien'}</p>
+		<MonthTabs {y} {occs} />
+		<p class="tip">{canHover ? 'Beweeg over de maanden om ze te bekijken, klik om er een te kiezen' : 'Tik op een maand om de dagen te zien'}</p>
 	</div>
 	<div class="list">
 		<Content {occs} emptyTitle="Nog niets vastgelegd in {y}" emptySub="Maak het jaar, een maand of een dag bijzonder." onadd={() => (ui.menu = { y, m: null })} />
