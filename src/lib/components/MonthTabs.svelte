@@ -28,7 +28,8 @@
 	/** Tab chosen by a click; starts on this month in the current year, else on January. */
 	let picked = $state(0);
 	$effect.pre(() => {
-		picked = y === app.now.y ? app.now.m : 0;
+		const last = ui.monthTab;
+		picked = last?.y === y ? last.m : y === app.now.y ? app.now.m : 0;
 	});
 	/** Tab under the mouse; it shows while you point at it. */
 	let hover = $state<number | null>(null);
@@ -50,7 +51,7 @@
 	function choose(i: number) {
 		hover = null;
 		if (onmonth) onmonth(i);
-		else picked = i;
+		else ui.monthTab = { y, m: (picked = i) };
 	}
 	function onkeydown(e: KeyboardEvent) {
 		const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;

@@ -27,7 +27,7 @@
 
 <div class="page-in">
 	<h2 class="big" class:now={y === app.now.y} style:view-transition-name={morphs ? 'pres-year' : null}>{y}</h2>
-	<div class="info">
+	<div class="info" style:view-transition-name={morphs ? 'pres-info' : null}>
 		<div class="count">
 			{#if line}<span class="ageline">{line}{real.length ? ' · ' : ''}</span>{/if}{real.length ? momentsLabel(real.length) : line ? '' : 'Nog niets bijzonders'}
 		</div>
@@ -35,8 +35,8 @@
 			<div class="stsum">{#each stats as s (s.name)}<span class="sst" style:--c={s.color}>{s.n} {s.name}</span>{/each}</div>
 		{/if}
 	</div>
-	<div class="acc" style:view-transition-name={morphs ? 'pres-months' : null}>
-		<MonthTabs {y} {occs} />
+	<div class="acc">
+		<div style:view-transition-name={morphs ? 'pres-months' : null}><MonthTabs {y} {occs} /></div>
 		<p class="tip">{canHover ? 'Beweeg over de maanden om ze te bekijken, klik om er een te kiezen' : 'Tik op een maand om de dagen te zien'}</p>
 	</div>
 	<div class="list">

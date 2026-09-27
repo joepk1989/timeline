@@ -4,6 +4,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
 	import { stopPresenting } from '$lib/state/present';
+	import { ui } from '$lib/state/ui.svelte';
 	import { labelFull, MONTHS, season } from '$lib/domain/dates';
 	import { yearLine } from '$lib/domain/age';
 	import { STATUSES } from '$lib/domain/kinds';
@@ -37,7 +38,9 @@
 	const occs = $derived(yearOccurrences(app.visible, y));
 	const real = $derived(occs.filter((o) => !o.moment.virtual).length);
 	const line = $derived(yearLine(app.tl, y));
-	const focus = $derived(s && s.o.m != null && s.o.y === y ? { m: s.o.m, d: s.o.d } : null);
+	/** While the screen morphs in, the months keep showing the month the year page showed. */
+	let settled = $state(false);
+	const focus = $derived(settled && s && s.o.m != null && s.o.y === y ? { m: s.o.m, d: s.o.d } : null);
 
 	function save() {
 		try { localStorage.setItem(KEY, JSON.stringify({ ...saved, what, ms, loop })); } catch { /* ignore */ }
@@ -74,6 +77,9 @@
 		i = n;
 		restart();
 	}
+	/** Until the first step, the first moment fades in after the screen has morphed into place. */
+	let moved = $state(false);
+	$effect(() => { if (i !== first.start) moved = true; });
 	function goTo(n: number) {
 		if (n < 0) return;
 		i = n;
@@ -103,6 +109,8 @@
 	}
 
 	function stop() {
+		// The year page opens on the month that was on show, so the months do not change while morphing back.
+		if (focus) ui.monthTab = { y, m: focus.m };
 		stopPresenting(y);
 	}
 	function onkeydown(e: KeyboardEvent) {
@@ -127,6 +135,7 @@
 	let sx: number | null = null;
 
 	onMount(() => {
+		setTimeout(() => (settled = true), matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600);
 		wasFull = !!document.fullscreenElement;
 		wake();
 		restart();
@@ -147,7 +156,7 @@
 
 	<header class="top">
 		<h2 class="big" class:now={y === app.now.y} style:view-transition-name="pres-year">{y}</h2>
-		<div class="info">
+		<div class="info" style:view-transition-name="pres-info">
 			{#if line}<span class="ageline">{line}{real ? ' · ' : ''}</span>{/if}{real ? momentsLabel(real) : ''}
 		</div>
 		<div class="ui">
@@ -173,7 +182,7 @@
 			{@const mo = o.moment}
 			{@const st = mo.status ? STATUSES.find((x) => x.id === mo.status) : null}
 			{#key i}
-				<article class="moment" class:hasph={!!s.photo} style:--s={o.m == null ? 'var(--accent)' : `var(--${season(o.m)})`}>
+				<article class="moment" class:first={i === built.start && !moved} class:hasph={!!s.photo} style:--s={o.m == null ? 'var(--accent)' : `var(--${season(o.m)})`}>
 					<div class="text">
 						<div class="em" aria-hidden="true">{mo.emoji}</div>
 						<div class="when">
@@ -223,6 +232,7 @@
 	.show { position: relative; min-height: 0; display: flex; align-items: center; overflow: hidden; }
 	.moment { width: 100%; max-height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3vw; align-items: center; animation: fadein 0.6s ease both; }
 	.moment.hasph { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+	.moment.first { animation-delay: 0.35s; }
 	@keyframes fadein { from { opacity: 0; transform: translateY(1.5vh); } to { opacity: 1; transform: none; } }
 	.text { border-left: 6px solid var(--s); padding-left: clamp(16px, 2.5vw, 48px); min-width: 0; }
 	.em { font-size: clamp(44px, 9vh, 130px); line-height: 1; margin-bottom: 1.5vh; }

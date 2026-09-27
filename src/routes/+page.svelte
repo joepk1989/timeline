@@ -82,4 +82,12 @@
 	/* Hover */
 	.fab { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
 	@media (hover: hover) { .fab:hover { background: color-mix(in srgb, var(--ink) 85%, var(--surface)); box-shadow: 0 10px 28px rgba(10, 20, 30, 0.3); } }
+
+	/* Morphing into and out of presenting (see state/present.ts). */
+	:global(::view-transition-group(*)) { animation-duration: 0.55s; animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); }
+	:global(::view-transition-old(root)) { animation-duration: 0.3s; }
+	:global(::view-transition-new(root)) { animation-duration: 0.45s; animation-delay: 0.1s; }
+	/* Keep the months and the line next to the year at their own size while they move, instead of stretching. */
+	:global(::view-transition-old(pres-months)), :global(::view-transition-new(pres-months)),
+	:global(::view-transition-old(pres-info)), :global(::view-transition-new(pres-info)) { height: 100%; width: auto; object-fit: none; object-position: left top; }
 </style>
