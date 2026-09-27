@@ -70,7 +70,7 @@
 		const out: Record<string, string> = {};
 		for (const [i, p] of paths.entries()) {
 			busy = `Foto's verzamelen… ${i + 1} van ${paths.length}`;
-			const b = await app.backend.photoBlob(p).catch(() => null);
+			const b = await app.photoBlob(p);
 			if (b) out[p] = await blobToDataUrl(b);
 		}
 		return out;

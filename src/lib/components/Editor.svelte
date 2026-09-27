@@ -86,7 +86,7 @@
 			try {
 				const { blob, taken } = await preparePhoto(f);
 				const path = await app.backend.uploadPhoto(app.tl.id, blob);
-				if (saved || closed) { app.backend.deletePhotos([path]); continue; }
+				if (saved || closed) { app.deletePhotos([path]); continue; }
 				photos.push(path); fresh.push(path);
 				if (taken && !dateTouched && photos.length === 1) {
 					const t = parseDate(taken);
@@ -101,14 +101,14 @@
 	}
 	function removePhoto(p: string) {
 		photos = photos.filter((x) => x !== p);
-		if (fresh.includes(p)) { fresh = fresh.filter((x) => x !== p); app.backend.deletePhotos([p]); }
+		if (fresh.includes(p)) { fresh = fresh.filter((x) => x !== p); app.deletePhotos([p]); }
 		else removed.push(p);
 	}
 
 	let closed = false;
 	function close() {
 		closed = true;
-		if (!saved && fresh.length) app.backend.deletePhotos(fresh);
+		if (!saved && fresh.length) app.deletePhotos(fresh);
 		ui.editor = null;
 	}
 
@@ -136,14 +136,14 @@
 		const gone = removed.slice();
 		ui.editor = null;
 		if (await app.saveMoment(mo)) {
-			if (gone.length) app.backend.deletePhotos(gone);
+			if (gone.length) app.deletePhotos(gone);
 			app.toast('Moment opgeslagen');
 		}
 	}
 	function del() {
 		if (!prev) return;
 		saved = true;
-		if (fresh.length) app.backend.deletePhotos(fresh);
+		if (fresh.length) app.deletePhotos(fresh);
 		ui.editor = null;
 		app.deleteMoment(prev.id);
 	}

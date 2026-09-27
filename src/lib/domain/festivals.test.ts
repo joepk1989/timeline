@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { easter, festivalTimeline, lastWeekday, nthWeekday } from './festivals';
+import { demoPhotoSvg, easter, festivalTimeline, isDemoPhoto, lastWeekday, nthWeekday } from './festivals';
 
 let n = 0;
 const id = () => `f${n++}`;
@@ -33,5 +33,16 @@ describe('festivals', () => {
 		expect(moments.filter((m) => m.date.startsWith('2026')).map((m) => m.title)).toEqual(['Amsterdam Dance Event', 'Le Guess Who?']);
 		expect(moments.filter((m) => m.title === 'SAIL Amsterdam').map((m) => m.date.slice(0, 4))).toEqual(['2030', '2035']);
 		expect(moments.every((m) => m.note.includes('geschat') && (!m.end || m.end > m.date))).toBe(true);
+	});
+	it('gives every festival a placeholder photo that is drawn, not stored', () => {
+		const { moments } = festivalTimeline(now, id);
+		expect(moments.every((m) => m.photos.length === 1 && isDemoPhoto(m.photos[0]))).toBe(true);
+		const svg = demoPhotoSvg(moments.find((m) => m.title === 'Le Guess Who?')!.photos[0])!;
+		expect(svg).toContain('<svg');
+		expect(svg).toContain('Le Guess Who?');
+		expect(svg).toContain('Voorbeeldfoto');
+		expect(demoPhotoSvg(moments[0].photos[0])).toBe(demoPhotoSvg(moments[0].photos[0]));
+		expect(demoPhotoSvg('demo:festival/bestaat-niet')).toBeNull();
+		expect(demoPhotoSvg('abc/def.jpg')).toBeNull();
 	});
 });

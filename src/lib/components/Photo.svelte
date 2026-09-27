@@ -5,7 +5,7 @@
 	let src = $state('');
 	$effect(() => {
 		let live = true;
-		app.backend.photoUrl(path).then((u) => live && (src = u)).catch(() => {});
+		app.photoUrl(path).then((u) => live && (src = u)).catch(() => {});
 		return () => (live = false);
 	});
 </script>

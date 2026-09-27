@@ -112,10 +112,68 @@ export function festivalTimeline(now: Day, makeId: () => string): { timeline: Ti
 			const end = w.days > 1 ? add(y, w.m, w.d, w.days - 1) : null;
 			if ((end ?? date) < today) continue;
 			moments.push({
-				id: makeId(), timelineId: timeline.id, title: f.name, emoji: f.emoji, categoryId: f.cat, date, end, repeat: false, status: null, photos: [],
-				note: `${f.place}. Datum geschat: meestal ${f.pattern}. Controleer de officiële datum bij de organisatie.`
+				id: makeId(), timelineId: timeline.id, title: f.name, emoji: f.emoji, categoryId: f.cat, date, end, repeat: false, status: null,
+				photos: [DEMO_PHOTO + slugOf(f.name)],
+				note: `${f.place}. Datum geschat: meestal ${f.pattern}. Controleer de officiële datum bij de organisatie. De foto is een voorbeeld.`
 			});
 		}
 	}
 	return { timeline, moments };
+}
+
+/* ---------- placeholder photos ---------- */
+
+/** Photo paths of the demo start with this; they are drawn here instead of stored. */
+export const DEMO_PHOTO = 'demo:festival/';
+export const isDemoPhoto = (path: string) => path.startsWith('demo:');
+const slugOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const xml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+function shade(hex: string, k: number): string {
+	const n = parseInt(hex.slice(1), 16);
+	const ch = (v: number) => Math.round(v * k).toString(16).padStart(2, '0');
+	return '#' + ch((n >> 16) & 255) + ch((n >> 8) & 255) + ch(n & 255);
+}
+/** Small deterministic random numbers, so a festival always gets the same picture. */
+function rng(seed: string) {
+	let h = 2166136261;
+	for (const c of seed) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+	return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296;
+}
+
+/**
+ * A placeholder photo for a demo festival: a stage with light beams and a crowd in the
+ * festival's category colour, its symbol, name and place, and a "Voorbeeldfoto" label. SVG text, or null.
+ */
+export function demoPhotoSvg(path: string): string | null {
+	if (!path.startsWith(DEMO_PHOTO)) return null;
+	const f = FESTIVALS.find((x) => slugOf(x.name) === path.slice(DEMO_PHOTO.length));
+	if (!f) return null;
+	const color = CATEGORIES.find((c) => c.id === f.cat)!.color;
+	const r = rng(f.name);
+	const beams = Array.from({ length: 5 }, (_, i) => {
+		const x = 140 + i * 230 + r() * 80, spread = 120 + r() * 160, to = x + (r() - 0.5) * 500;
+		return `<polygon points="${x},0 ${to - spread},800 ${to + spread},800" fill="#fff" opacity="${(0.05 + r() * 0.08).toFixed(2)}"/>`;
+	}).join('');
+	const heads = Array.from({ length: 34 }, (_, i) => {
+		const x = i * 37 + r() * 20 - 10, y = 700 + r() * 40, rad = 26 + r() * 14;
+		const arm = r() < 0.25 ? `<rect x="${(x + rad * 0.6).toFixed(0)}" y="${(y - 110).toFixed(0)}" width="12" height="100" rx="6" transform="rotate(${(r() * 30 - 15).toFixed(0)} ${x.toFixed(0)} ${y.toFixed(0)})"/>` : '';
+		return `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${rad.toFixed(0)}"/>${arm}`;
+	}).join('');
+	// Everything sits in the middle, so a square crop (the photo grid) still shows it; long names get smaller.
+	const size = Math.round(Math.min(92, 740 / (0.56 * f.name.length)));
+	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${shade(color, 1)}"/><stop offset="1" stop-color="${shade(color, 0.45)}"/></linearGradient>
+<radialGradient id="glow" cx="0.72" cy="0.18" r="0.7"><stop offset="0" stop-color="#fff" stop-opacity="0.45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="800" fill="url(#bg)"/>
+<rect width="1200" height="800" fill="url(#glow)"/>
+${beams}
+<g fill="#000" opacity="0.28">${heads}<rect y="730" width="1200" height="70"/></g>
+<text x="600" y="330" text-anchor="middle" font-size="170" font-family="'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">${f.emoji}</text>
+<text x="600" y="${400 + size}" text-anchor="middle" font-size="${size}" font-weight="800" fill="#fff" font-family="'Bricolage Grotesque',system-ui,sans-serif" letter-spacing="-1">${xml(f.name)}</text>
+<text x="600" y="${455 + size}" text-anchor="middle" font-size="38" fill="#fff" opacity="0.85" font-family="'Bricolage Grotesque',system-ui,sans-serif">${xml(f.place)}</text>
+<g transform="translate(485 40)"><rect width="230" height="54" rx="27" fill="#000" opacity="0.35"/><text x="115" y="36" text-anchor="middle" font-size="26" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">Voorbeeldfoto</text></g>
+</svg>`;
 }

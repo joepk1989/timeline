@@ -189,7 +189,7 @@
 							<span class="date">{o.m == null ? `Heel ${o.y}` : o.end ? whenLabel(o) + (o.y === o.end.y ? ` ${o.y}` : '') : labelFull(o.y, o.m, o.d)}</span>
 							{#each relParts(o, app.tl, app.now) as r, ri (ri)}<span class="rel {r.kind}">{r.text}</span>{/each}
 						</div>
-						<h3 class="ttl">{mo.title}</h3>
+						<h3 class="ttl" style:--fit={Math.min(1, 13 / Math.max(...mo.title.split(/\s+/).map((w) => w.length)))}>{mo.title}</h3>
 						{#if mo.note}<p class="note">{mo.note}</p>{/if}
 						<div class="tags">
 							{#if st}<span class="pill" style:--c={st.color}>{st.name}</span>{/if}
@@ -241,7 +241,7 @@
 	.rel.age { color: var(--ink); font-weight: 700; }
 	.rel.soon { color: var(--accent); font-weight: 700; }
 	.rel.late { color: var(--danger); font-weight: 700; }
-	.ttl { margin: 0.2em 0 0.25em; font-size: clamp(32px, min(8vh, 6vw), 120px); font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; overflow-wrap: anywhere; text-wrap: balance; }
+	.ttl { margin: 0.2em 0 0.25em; font-size: calc(clamp(32px, min(8vh, 6vw), 120px) * var(--fit, 1)); font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; overflow-wrap: break-word; hyphens: auto; text-wrap: balance; }
 	.note { margin: 0; font-size: clamp(16px, 2.8vh, 34px); color: var(--muted); max-width: 55ch; line-height: 1.4; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
 	.tags { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 2vh; font-size: clamp(14px, 2vh, 24px); align-items: center; }
 	.pill { padding: 0.2em 0.75em; border-radius: 99px; background: var(--c); color: #fff; font-weight: 700; }
@@ -265,7 +265,7 @@
 		.info { font-size: 15px; }
 		.em { font-size: 44px; margin-bottom: 8px; }
 		.when { font-size: 14px; }
-		.ttl { font-size: clamp(26px, 8vw, 44px); }
+		.ttl { font-size: calc(clamp(26px, 8vw, 44px) * var(--fit, 1)); }
 		.note { font-size: 16px; -webkit-line-clamp: 3; line-clamp: 3; }
 		.tags { font-size: 14px; margin-top: 10px; }
 		.cbtn { height: 38px; min-width: 38px; }

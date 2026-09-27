@@ -3,7 +3,7 @@ import { supabase } from '$lib/supabase';
 import { KINDS } from '$lib/domain/kinds';
 import { today } from '$lib/domain/dates';
 import { demoTimeline } from '$lib/domain/demo';
-import { festivalTimeline } from '$lib/domain/festivals';
+import { demoPhotoSvg, festivalTimeline, isDemoPhoto } from '$lib/domain/festivals';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -201,7 +201,7 @@ class AppState {
 		}
 		try {
 			await this.backend.deleteTimeline(id);
-			await this.backend.deletePhotos(photos).catch(() => {});
+			await this.deletePhotos(photos);
 			this.toast(`“${t.name}” is verwijderd`);
 		} catch {
 			this.toast('Niet alles kon worden verwijderd');
@@ -237,6 +237,22 @@ class AppState {
 		}
 	}
 
+	/* ---------- photos ---------- */
+	// Demo photos ("demo:...") are drawn by the domain, not stored; everything else goes to the backend.
+
+	async photoUrl(path: string): Promise<string> {
+		const svg = demoPhotoSvg(path);
+		return svg != null ? 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) : this.backend.photoUrl(path);
+	}
+	async photoBlob(path: string): Promise<Blob | null> {
+		const svg = demoPhotoSvg(path);
+		return svg != null ? new Blob([svg], { type: 'image/svg+xml' }) : this.backend.photoBlob(path).catch(() => null);
+	}
+	async deletePhotos(paths: string[]) {
+		const stored = paths.filter((p) => !isDemoPhoto(p));
+		if (stored.length) await this.backend.deletePhotos(stored).catch(() => {});
+	}
+
 	/* ---------- moments ---------- */
 
 	async saveMoment(m: Moment): Promise<boolean> {
@@ -265,7 +281,7 @@ class AppState {
 		}
 		let undone = false;
 		this.toast(`“${m.title}” verwijderd`, { label: 'Ongedaan maken', fn: () => { undone = true; this.saveMoment(m); this.toast('Moment teruggezet'); } }, 7000);
-		setTimeout(() => { if (!undone) this.backend.deletePhotos(m.photos).catch(() => {}); }, 7600);
+		setTimeout(() => { if (!undone) this.deletePhotos(m.photos); }, 7600);
 	}
 
 	/* ---------- account ---------- */
@@ -325,7 +341,7 @@ class AppState {
 		const files = [{ name: 'backup.json', data: enc.encode(JSON.stringify(makeBackup(own, moments, new Date().toISOString()), null, 2)) }];
 		const paths = moments.flatMap((m) => m.photos);
 		for (const [i, p] of paths.entries()) {
-			const blob = await this.backend.photoBlob(p).catch(() => null);
+			const blob = isDemoPhoto(p) ? null : await this.photoBlob(p);
 			if (blob) files.push({ name: 'photos/' + p, data: new Uint8Array(await blob.arrayBuffer()) });
 			onProgress?.(i + 1, paths.length);
 		}
@@ -365,6 +381,7 @@ class AppState {
 			for (const m of parsed.moments) {
 				const out: string[] = [];
 				for (const p of m.photos) {
+					if (isDemoPhoto(p)) { out.push(p); continue; }
 					const data = photos.get(p);
 					if (data) out.push(await this.backend.uploadPhoto(m.timelineId, new Blob([data], { type: 'image/jpeg' })));
 				}
