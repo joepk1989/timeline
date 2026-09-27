@@ -55,12 +55,26 @@
 		lvl = l;
 		dateTouched = true;
 		if (l === 'd' && day == null) day = 1;
+		// A period runs from day to day; picking a whole year or month ends it.
+		if (l !== 'd') period = false;
 	}
+	/**
+	 * Turning a year or a month into a period makes it run from its first to its last day,
+	 * which you can then change. A day becomes a period of two days.
+	 */
 	function togglePeriod() {
-		if (period && endD == null) {
-			const y = year ?? app.now.y;
+		if (!period) return;
+		const y = year ?? app.now.y;
+		if (lvl === 'y') {
+			month = 0; day = 1; lvl = 'd';
+			endY = y; endM = 11; endD = 31;
+		} else if (lvl === 'm') {
+			day = 1; lvl = 'd';
+			endY = y; endM = month; endD = daysInMonth(y, month);
+		} else if (endD == null) {
 			endD = Math.min((day ?? 1) + 1, daysInMonth(y, month)); endM = month; endY = y;
 		}
+		dateTouched = true;
 	}
 
 	async function addPhotos(ev: Event) {
@@ -175,9 +189,7 @@
 				</div>
 				{#if age}<span class="ageline">{age}</span>{/if}
 			</div>
-			{#if lvl === 'd'}
-				<label class="check"><input type="checkbox" bind:checked={period} onchange={togglePeriod} />Periode van meerdere dagen</label>
-			{/if}
+			<label class="check"><input type="checkbox" bind:checked={period} onchange={togglePeriod} />Periode: duurt langer dan één dag</label>
 			{#if lvl === 'd' && period}
 				<div class="lab">Tot en met
 					<div class="row">
