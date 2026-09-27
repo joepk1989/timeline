@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { demoPhotoSvg, easter, festivalTimeline, isDemoPhoto, lastWeekday, nthWeekday } from './festivals';
+import { addMissingFestivalPhotos, demoPhotoSvg, easter, festivalTimeline, isDemoPhoto, lastWeekday, nthWeekday } from './festivals';
 
 let n = 0;
 const id = () => `f${n++}`;
@@ -44,5 +44,14 @@ describe('festivals', () => {
 		expect(demoPhotoSvg(moments[0].photos[0])).toBe(demoPhotoSvg(moments[0].photos[0]));
 		expect(demoPhotoSvg('demo:festival/bestaat-niet')).toBeNull();
 		expect(demoPhotoSvg('abc/def.jpg')).toBeNull();
+	});
+	it('adds photos to a festival demo that was loaded before it had them', () => {
+		const { timeline, moments } = festivalTimeline(now, id);
+		const old = moments.map((m) => ({ ...m, photos: [] as string[] }));
+		old[1].photos = ['eigen/foto.jpg'];
+		const fixed = addMissingFestivalPhotos(timeline, old);
+		expect(fixed).toHaveLength(old.length - 1);
+		expect(fixed.every((m) => isDemoPhoto(m.photos[0]))).toBe(true);
+		expect(addMissingFestivalPhotos({ ...timeline, name: 'Mijn festivals' }, old)).toEqual([]);
 	});
 });

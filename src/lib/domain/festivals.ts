@@ -96,10 +96,23 @@ const CATEGORIES: Category[] = [
 	{ id: 'feest', name: 'Feest en traditie', color: '#C8507A' }
 ];
 
+export const FESTIVAL_DEMO_NAME = 'Demo: festivals in Nederland';
+
+/**
+ * Moments of a festival demo that was loaded before it had photos, with the photo added.
+ * Only moments without photos whose title is a known festival; the rest is left alone.
+ */
+export function addMissingFestivalPhotos(tl: Timeline, moments: Moment[]): Moment[] {
+	if (!tl.demo || tl.name !== FESTIVAL_DEMO_NAME) return [];
+	return moments
+		.filter((m) => m.timelineId === tl.id && !m.photos.length && FESTIVALS.some((f) => f.name === m.title))
+		.map((m) => ({ ...m, photos: [DEMO_PHOTO + slugOf(m.title)] }));
+}
+
 /** The coming ten years of festivals: what is still ahead this year, then the next ten years. */
 export function festivalTimeline(now: Day, makeId: () => string): { timeline: Timeline; moments: Moment[] } {
 	const timeline: Timeline = {
-		id: makeId(), name: 'Demo: festivals in Nederland', kind: 'anders', anchor: null,
+		id: makeId(), name: FESTIVAL_DEMO_NAME, kind: 'anders', anchor: null,
 		categories: CATEGORIES.map((c) => ({ ...c })), scope: { from: now.y, to: now.y + 10 }, demo: true
 	};
 	const today = formatDate(now.y, now.m, now.d);

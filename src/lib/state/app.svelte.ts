@@ -3,7 +3,7 @@ import { supabase } from '$lib/supabase';
 import { KINDS } from '$lib/domain/kinds';
 import { today } from '$lib/domain/dates';
 import { demoTimeline } from '$lib/domain/demo';
-import { demoPhotoSvg, festivalTimeline, isDemoPhoto } from '$lib/domain/festivals';
+import { addMissingFestivalPhotos, demoPhotoSvg, festivalTimeline, isDemoPhoto } from '$lib/domain/festivals';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -102,6 +102,7 @@ class AppState {
 		}
 		if (this.timelines.length) this.temp = null;
 		else this.temp ??= blank(this.now.y);
+		await this.upgradeDemos();
 		if (!this.timelines.some((t) => t.id === this.curId)) this.curId = this.timelines[0]?.id ?? null;
 		const t = this.tl;
 		if (fresh || t.scope.from !== this.scope.from || t.scope.to !== this.scope.to) {
@@ -214,6 +215,15 @@ class AppState {
 		await this.sb.from('timeline_members').delete().eq('timeline_id', id).eq('user_id', this.user.id);
 		await this.reload(true);
 		this.toast('Je volgt deze tijdlijn niet meer');
+	}
+
+	/** A festival demo loaded before the demo had photos gets its placeholder photos. */
+	private async upgradeDemos() {
+		const fixed = this.timelines.flatMap((t) => (this.roles[t.id] === 'owner' ? addMissingFestivalPhotos(t, this.moments) : []));
+		if (!fixed.length) return;
+		const byId = new Map(fixed.map((m) => [m.id, m]));
+		this.moments = this.moments.map((m) => byId.get(m.id) ?? m);
+		await this.backend.saveMoments(fixed).catch(() => {});
 	}
 
 	/** Loads a demo: a whole life, or the festivals in the Netherlands for the coming ten years. */
