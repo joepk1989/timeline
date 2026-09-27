@@ -4,7 +4,7 @@
 	import { tick } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { labelFull, MONTHS, MONTHS_SHORT, season, SEASON_NAMES } from '$lib/domain/dates';
+	import { labelFull, MONTHS, MONTHS_SHORT, season, SEASON_NAMES, WEEKDAYS_SHORT } from '$lib/domain/dates';
 	import { ageLabel } from '$lib/domain/age';
 	import { momentsLabel, monthGrid, monthOccurrences } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
@@ -44,25 +44,30 @@
 		<button class="title" aria-expanded="true" aria-label="{MONTHS[m]} {y}. Dichtvouwen" onclick={() => { open = null; hover = null; }}>
 			<b>{MONTHS[m]}</b><small>{SEASON_NAMES[season(m)]}{age && age !== app.kind.before ? ` · ${age}` : ''}{months[m].count ? ` · ${momentsLabel(months[m].count)}` : ''}</small>
 		</button>
-					<div class="cal">
-						{#each ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'] as w (w)}<span class="wh" aria-hidden="true">{w}</span>{/each}
-						{#each { length: grid.lead }, i (i)}<span></span>{/each}
-						{#each grid.days as day (day.d)}
-							<button
-								class="day"
-								class:we={day.weekend}
-								class:has={day.here.length > 0}
-								class:period={day.inPeriod}
-								class:today={day.today}
-								aria-label="{labelFull(y, m, day.d)}{day.here.length ? ', ' + day.here.map((o) => o.moment.title).join(', ') : ''}"
-								onclick={() => (ui.day = { y, m: m, d: day.d })}
-							>
-								<span class="n">{day.d}</span>
-								{#if day.here.some((o) => !o.end)}<span class="e" aria-hidden="true">{day.here.find((o) => !o.end)!.moment.emoji}</span>{/if}
-								{#each day.here.filter((o) => !o.end).slice(0, 2) as o (o.moment.id)}<span class="t" aria-hidden="true">{o.moment.emoji} {o.moment.title}</span>{/each}
-							</button>
-						{/each}
-					</div>
+		<div class="days">
+			{#each grid.days as day (day.d)}
+				<button
+					class="day"
+					class:we={day.weekend}
+					class:mon={day.wd === 1 && day.d > 1}
+					class:has={day.here.length > 0}
+					class:period={day.inPeriod}
+					class:today={day.today}
+					aria-label="{labelFull(y, m, day.d)}{day.here.length ? ', ' + day.here.map((o) => o.moment.title).join(', ') : ''}"
+					onclick={() => (ui.day = { y, m, d: day.d })}
+				>
+					<span class="wd">{WEEKDAYS_SHORT[day.wd]}</span>
+					<span class="n">{day.d}</span>
+					<span class="es" aria-hidden="true">{#each day.here.slice(0, 3) as o (o.moment.id)}<span>{o.moment.emoji}</span>{/each}</span>
+					<span class="det" aria-hidden="true">
+						{#each day.here.slice(0, 3) as o (o.moment.id)}<span class="t">{o.moment.emoji} {o.moment.title}</span>{/each}
+						{#if day.here.length > 3}<span class="more">+{day.here.length - 3} meer</span>{/if}
+						{#if !day.here.length}<span class="more">Nog niets</span>{/if}
+					</span>
+					<span class="sbar" aria-hidden="true"></span>
+				</button>
+			{/each}
+		</div>
 					<button class="zoom" onclick={() => app.enterMonth(y, m)}>Hele maand bekijken</button>
 				</div>
 {/snippet}
@@ -127,16 +132,29 @@
 
 	.body { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 8px; animation: fade 0.25s 0.2s both; }
 	@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-	.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
-	.wh { font-size: 10px; color: var(--muted); text-align: center; }
-	.day { aspect-ratio: 1; min-height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); padding: 2px 0 0; display: flex; flex-direction: column; align-items: center; gap: 0; font: inherit; color: var(--ink); cursor: pointer; overflow: hidden; }
+	/* The days of the open month on one row. Point at a day (or focus it) and it widens to show its moments. */
+	.days { display: flex; gap: 2px; height: 150px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding-bottom: 2px; }
+	.day { flex: 1 1 0; min-width: 26px; position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0 0; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); font: inherit; color: var(--ink); cursor: pointer; overflow: hidden; text-align: left;
+		transition: flex-grow 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), min-width 0.3s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	.day.we { background: var(--weekend); }
+	.day.mon { margin-left: 4px; }
 	.day.period { background: color-mix(in srgb, var(--s) 22%, var(--surface)); }
 	.day.has { border-color: var(--s); }
 	.day.today { outline: 2px solid var(--accent); outline-offset: -2px; }
-	.n { font-size: 12px; font-weight: 700; line-height: 1.1; }
-	.e { font-size: 12px; line-height: 1.1; }
-	.t { display: none; }
+	.wd { font-size: 10px; color: var(--muted); line-height: 1; }
+	.n { font-size: 14px; font-weight: 800; line-height: 1; }
+	.day .es { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 13px; line-height: 1.15; }
+	.det { position: absolute; left: 0; top: 40px; width: 170px; padding: 0 8px; display: flex; flex-direction: column; gap: 4px; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+	.t { font-size: 12px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+	.more { font-size: 11px; color: var(--muted); }
+	.sbar { margin-top: auto; align-self: stretch; height: 4px; background: var(--s); opacity: 0.35; }
+	.day.has .sbar { opacity: 1; }
+	@media (hover: hover) {
+		.day:hover, .day:focus-visible { flex-grow: 7; min-width: 150px; }
+		.day:hover .det, .day:focus-visible .det { opacity: 1; transition: opacity 0.2s 0.12s; }
+		.day:hover .es, .day:focus-visible .es { visibility: hidden; }
+		.day:hover, .day:focus-visible { align-items: flex-start; padding-left: 8px; }
+	}
 	.zoom { align-self: flex-start; border: none; background: transparent; padding: 2px 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; }
 
 	/* Full width: the closed months get room for their full name, the days a fixed height. */
@@ -144,14 +162,12 @@
 		.short { font-size: 14px; font-weight: 600; }
 		.c { font-size: 15px; }
 		.es { flex-direction: row; flex-wrap: wrap; justify-content: center; font-size: 16px; gap: 2px; }
-		/* Days are wide now: show the moments by name. */
-		.day { aspect-ratio: auto; height: 64px; align-items: flex-start; padding: 4px 7px; gap: 2px; text-align: left; }
-		.n { font-size: 14px; }
-		.e { display: none; }
-		.t { display: block; max-width: 100%; font-size: 12px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.days { height: 190px; }
+		.n { font-size: 16px; }
+		.day .es { font-size: 15px; }
 	}
 	@media (min-width: 1200px) {
 		.row { min-height: clamp(72px, 8vh, 110px); }
 	}
-	@media (prefers-reduced-motion: reduce) { .col { transition: none; } .body { animation: none; } }
+	@media (prefers-reduced-motion: reduce) { .col, .day { transition: none; } .body { animation: none; } }
 </style>
