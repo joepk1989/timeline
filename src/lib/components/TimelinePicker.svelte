@@ -33,7 +33,8 @@
 		</div>
 		<div class="actions">
 			<Btn variant="ghost" onclick={close}>Sluiten</Btn>
-			<Btn variant="ghost" onclick={() => { close(); app.loadDemo(); }}>Demo laden</Btn>
+			<Btn variant="ghost" onclick={() => { close(); app.loadDemo('leven'); }}>Demo: een leven</Btn>
+			<Btn variant="ghost" onclick={() => { close(); app.loadDemo('festivals'); }}>Demo: festivals</Btn>
 			<Btn onclick={() => (ui.tlEdit = { id: null, first: false })}>Nieuwe tijdlijn</Btn>
 		</div>
 	</div>

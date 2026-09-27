@@ -80,7 +80,8 @@
 					<button type="button" class="type" onclick={() => choose(kk)}><span class="e">{KINDS[kk].emoji}</span><b>{KINDS[kk].label}</b><small>{KINDS[kk].hint}</small></button>
 				{/each}
 			</div>
-			<Btn variant="link" onclick={() => { close(); app.loadDemo(); }}>Of bekijk eerst een demo met een heel leven erin</Btn>
+			<Btn variant="link" onclick={() => { close(); app.loadDemo('leven'); }}>Of bekijk eerst een demo met een heel leven erin</Btn>
+			<Btn variant="link" onclick={() => { close(); app.loadDemo('festivals'); }}>Of de festivals in Nederland van de komende tien jaar</Btn>
 		{:else}
 			{#if !existing}<Btn variant="link" onclick={() => (kind = null)}>Ander soort kiezen</Btn>{/if}
 			<label>Naam<input type="text" maxlength="40" placeholder={k!.namePlaceholder} bind:value={name} bind:this={nameEl} /></label>

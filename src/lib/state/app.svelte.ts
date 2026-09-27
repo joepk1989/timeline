@@ -3,6 +3,7 @@ import { supabase } from '$lib/supabase';
 import { KINDS } from '$lib/domain/kinds';
 import { today } from '$lib/domain/dates';
 import { demoTimeline } from '$lib/domain/demo';
+import { festivalTimeline } from '$lib/domain/festivals';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -215,15 +216,16 @@ class AppState {
 		this.toast('Je volgt deze tijdlijn niet meer');
 	}
 
-	async loadDemo() {
-		const existing = this.timelines.find((t) => t.demo);
+	/** Loads a demo: a whole life, or the festivals in the Netherlands for the coming ten years. */
+	async loadDemo(which: 'leven' | 'festivals' = 'leven') {
+		const { timeline, moments } = (which === 'festivals' ? festivalTimeline : demoTimeline)(this.now, newId);
+		const existing = this.timelines.find((t) => t.demo && t.name === timeline.name);
 		if (existing) {
 			this.switchTo(existing.id);
 			this.toast('De demo staat er al');
 			return;
 		}
 		this.toast('Demo wordt geladen…');
-		const { timeline, moments } = demoTimeline(this.now, newId);
 		if (!(await this.saveTimeline(timeline))) return;
 		this.moments.push(...moments);
 		this.switchTo(timeline.id);
