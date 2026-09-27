@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
+	import { startPresenting } from '$lib/state/present';
 	import { MONTHS, MONTHS_SHORT, season } from '$lib/domain/dates';
 	import { ageLabel } from '$lib/domain/age';
 	import { STATUSES } from '$lib/domain/kinds';
@@ -63,7 +64,7 @@
 		{#if canFullscreen}
 			<span class="fs"><Btn variant="pill" onclick={toggleFullscreen} aria-label="Volledig scherm"><Icon name="full" /><span class="lbl">{fullscreen ? 'Sluiten' : 'Volledig scherm'}</span></Btn></span>
 		{/if}
-		<Btn variant="pill" onclick={() => (ui.showSetup = true)} aria-haspopup="dialog" aria-label="Presenteren"><Icon name="play" /><span class="lbl">Presenteren</span></Btn>
+		<Btn variant="pill" onclick={startPresenting} aria-label="Presenteren"><Icon name="play" /><span class="lbl">Presenteren</span></Btn>
 		<Btn variant="pill" onclick={() => (ui.menu = { y: app.year, m: app.mode === 'month' ? app.month : null })} aria-haspopup="dialog" aria-label="Menu"><Icon name="menu" /><span class="lbl">Menu</span></Btn>
 	</div>
 	<div class="filters" role="group" aria-label="Filter op categorie">

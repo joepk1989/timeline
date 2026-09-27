@@ -31,7 +31,7 @@
 		});
 	}
 	function onkeydown(e: KeyboardEvent) {
-		if (ui.show || document.querySelector('dialog[open]') || (e.target as HTMLElement).closest?.('input,textarea,select')) return;
+		if (ui.present || document.querySelector('dialog[open]') || (e.target as HTMLElement).closest?.('input,textarea,select')) return;
 		if (e.key === 'ArrowLeft') { e.preventDefault(); app.goTo(app.idx - 1); }
 		else if (e.key === 'ArrowRight') { e.preventDefault(); app.goTo(app.idx + 1); }
 		else if (e.key === 'Escape' && app.mode === 'month') app.exitMonth();

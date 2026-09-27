@@ -10,7 +10,21 @@
 	import type { Occurrence } from '$lib/domain/types';
 	type MonthGridT = ReturnType<typeof monthGrid>;
 
-	let { y, occs }: { y: number; occs: Occurrence[] } = $props();
+	let {
+		y,
+		occs,
+		focus = null,
+		onday,
+		onmonth
+	}: {
+		y: number;
+		occs: Occurrence[];
+		/** Presenting: the month (and day) of the moment on screen. It is opened and marked. */
+		focus?: { m: number; d: number | null } | null;
+		/** Replace what tapping a day or a month does (the presentation jumps there). */
+		onday?: (m: number, d: number) => void;
+		onmonth?: (m: number) => void;
+	} = $props();
 	let open = $state<number | null>(null);
 	$effect.pre(() => {
 		// Start with this month open in the current year.
@@ -26,11 +40,12 @@
 	);
 	/** Month under the mouse or keyboard focus; it wins over the one opened by a tap. */
 	let hover = $state<number | null>(null);
-	const active = $derived(hover ?? open);
+	const active = $derived(hover ?? (focus ? focus.m : open));
 	const grid = $derived(active == null ? null : monthGrid(occs, y, active, app.now));
 	const age = $derived(active == null ? null : ageLabel(app.tl, y, active, null));
 
 	async function toggle(m: number, head: HTMLElement) {
+		if (onmonth) return onmonth(m);
 		open = active === m ? null : m;
 		hover = null;
 		// When the month opens inline its header button is hidden: move focus to the month title.
@@ -53,8 +68,10 @@
 					class:has={day.here.length > 0}
 					class:period={day.inPeriod}
 					class:today={day.today}
+					class:sel={focus?.m === m && focus.d === day.d}
+					aria-current={focus?.m === m && focus.d === day.d ? 'date' : undefined}
 					aria-label="{labelFull(y, m, day.d)}{day.here.length ? ', ' + day.here.map((o) => o.moment.title).join(', ') : ''}"
-					onclick={() => (ui.day = { y, m, d: day.d })}
+					onclick={() => (onday ? onday(m, day.d) : (ui.day = { y, m, d: day.d }))}
 				>
 					<span class="wd">{WEEKDAYS_SHORT[day.wd]}</span>
 					<span class="n">{day.d}</span>
@@ -68,7 +85,7 @@
 				</button>
 			{/each}
 		</div>
-					<button class="zoom" onclick={() => app.enterMonth(y, m)}>Hele maand bekijken</button>
+		{#if !onday}<button class="zoom" onclick={() => app.enterMonth(y, m)}>Hele maand bekijken</button>{/if}
 				</div>
 {/snippet}
 
@@ -141,6 +158,8 @@
 	.day.period { background: color-mix(in srgb, var(--s) 22%, var(--surface)); }
 	.day.has { border-color: var(--s); }
 	.day.today { outline: 2px solid var(--accent); outline-offset: -2px; }
+	.day.sel { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+	.day.sel .wd { color: inherit; opacity: 0.75; }
 	.wd { font-size: 10px; color: var(--muted); line-height: 1; }
 	.n { font-size: 14px; font-weight: 800; line-height: 1; }
 	.day .es { display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 13px; line-height: 1.15; }

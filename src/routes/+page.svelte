@@ -9,9 +9,8 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import Menu from '$lib/components/Menu.svelte';
 	import Pager from '$lib/components/Pager.svelte';
-	import ShowSetup from '$lib/components/ShowSetup.svelte';
 	import SignIn from '$lib/components/SignIn.svelte';
-	import Slideshow from '$lib/components/Slideshow.svelte';
+	import Presenter from '$lib/components/Presenter.svelte';
 	import TimelineEditor from '$lib/components/TimelineEditor.svelte';
 	import TimelinePicker from '$lib/components/TimelinePicker.svelte';
 	import Toast from '$lib/components/Toast.svelte';
@@ -68,9 +67,8 @@
 {#if ui.tlEdit}<TimelineEditor />{/if}
 {#if ui.editor}<Editor />{/if}
 {#if ui.gallery}<Gallery />{/if}
-{#if ui.showSetup}<ShowSetup />{/if}
 {#if ui.account}<SignIn />{/if}
-{#if ui.show}<Slideshow />{/if}
+{#if ui.present}<Presenter />{/if}
 <Toast />
 
 <style>

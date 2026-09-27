@@ -1,5 +1,4 @@
 import type { Occurrence } from '$lib/domain/types';
-import type { Slide, ShowOptions } from '$lib/domain/slides';
 
 export interface GalleryItem {
 	path: string;
@@ -14,8 +13,8 @@ class UiState {
 	picker = $state(false);
 	tlEdit = $state<{ id: string | null; first: boolean } | null>(null);
 	gallery = $state<{ list: GalleryItem[]; i: number; canEdit: boolean } | null>(null);
-	showSetup = $state(false);
-	show = $state<{ slides: Slide[]; ms: number; loop: boolean; opt: ShowOptions } | null>(null);
+	/** Presenting: the timeline screen itself, full screen, playing through the moments. */
+	present = $state(false);
 	account = $state(false);
 }
 

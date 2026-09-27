@@ -9,6 +9,8 @@
 	import MonthAccordion from './MonthAccordion.svelte';
 
 	let { y }: { y: number } = $props();
+	// Only the page on screen takes part in the morph into presenting (names must be unique).
+	const morphs = $derived(y === app.year && app.mode === 'year' && !ui.present);
 	const canHover = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 	const occs = $derived(yearOccurrences(app.visible, y));
 	const real = $derived(occs.filter((o) => !o.moment.virtual));
@@ -24,7 +26,7 @@
 </script>
 
 <div class="page-in">
-	<h2 class="big" class:now={y === app.now.y}>{y}</h2>
+	<h2 class="big" class:now={y === app.now.y} style:view-transition-name={morphs ? 'pres-year' : null}>{y}</h2>
 	<div class="info">
 		<div class="count">
 			{#if line}<span class="ageline">{line}{real.length ? ' · ' : ''}</span>{/if}{real.length ? momentsLabel(real.length) : line ? '' : 'Nog niets bijzonders'}
@@ -33,7 +35,7 @@
 			<div class="stsum">{#each stats as s (s.name)}<span class="sst" style:--c={s.color}>{s.n} {s.name}</span>{/each}</div>
 		{/if}
 	</div>
-	<div class="acc">
+	<div class="acc" style:view-transition-name={morphs ? 'pres-months' : null}>
 		<MonthAccordion {y} {occs} />
 		<p class="tip">{canHover ? 'Beweeg over een maand om de dagen te zien, klik om hem open te houden' : 'Tik op een maand om de dagen te zien'}</p>
 	</div>

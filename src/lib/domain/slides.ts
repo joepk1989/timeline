@@ -6,7 +6,7 @@ import { isFuture, type Scope } from './view';
 export type Slide =
 	| { kind: 'title' }
 	| { kind: 'year'; y: number; occs: Occurrence[] }
-	| { kind: 'moment'; o: Occurrence; photo: string | null; photoIndex: number; photoCount: number };
+	| { kind: 'moment'; o: Occurrence; y: number; photo: string | null; photoIndex: number; photoCount: number };
 
 export type ShowWhat = 'all' | 'year' | 'future';
 export interface ShowOptions {
@@ -40,8 +40,8 @@ export function buildSlides(visible: Moment[], scope: Scope, currentYear: number
 		if (opt.years) out.push({ kind: 'year', y, occs });
 		for (const o of occs) {
 			const ph = o.moment.photos;
-			if (opt.photos && ph.length > 1) ph.forEach((p, i) => out.push({ kind: 'moment', o, photo: p, photoIndex: i, photoCount: ph.length }));
-			else out.push({ kind: 'moment', o, photo: ph[0] ?? null, photoIndex: 0, photoCount: ph.length });
+			if (opt.photos && ph.length > 1) ph.forEach((p, i) => out.push({ kind: 'moment', o, y, photo: p, photoIndex: i, photoCount: ph.length }));
+			else out.push({ kind: 'moment', o, y, photo: ph[0] ?? null, photoIndex: 0, photoCount: ph.length });
 		}
 	}
 	return out.length > 1 ? out : [];
@@ -86,4 +86,16 @@ export function yearLayout(occs: Occurrence[], y: number, lanes = 4, gap = 14.5)
 			return { o, x: Math.min(97, Math.max(3, x)), lane };
 		});
 	return { markers, bars };
+}
+
+export type MomentSlide = Extract<Slide, { kind: 'moment' }>;
+
+/**
+ * Slides for presenting on the timeline screen itself: one per moment, no title or year slides
+ * (the screen already shows the year and its months). Starts at the first moment in `fromYear` or later.
+ */
+export function momentSlides(visible: Moment[], scope: Scope, fromYear: number, now: Day, opt: Omit<ShowOptions, 'years'>): { slides: MomentSlide[]; start: number } {
+	const slides = buildSlides(visible, scope, fromYear, now, { ...opt, years: false }).filter((s): s is MomentSlide => s.kind === 'moment');
+	const start = slides.findIndex((s) => s.y >= fromYear);
+	return { slides, start: start < 0 ? 0 : start };
 }
