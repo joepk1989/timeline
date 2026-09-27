@@ -231,7 +231,10 @@
 
 	.show { position: relative; min-height: 0; display: flex; align-items: center; overflow: hidden; }
 	.moment { width: 100%; max-height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3vw; align-items: center; animation: fadein 0.6s ease both; }
-	.moment.hasph { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+	/* The photo takes half the screen width and the full height between the year and the months. */
+	.moment.hasph { height: 100%; grid-template-columns: minmax(0, 1fr) 50vw; align-items: stretch; }
+	.moment.hasph .text { align-self: center; }
+	.moment.hasph .note { -webkit-line-clamp: 3; line-clamp: 3; }
 	.moment.first { animation-delay: 0.35s; }
 	@keyframes fadein { from { opacity: 0; transform: translateY(1.5vh); } to { opacity: 1; transform: none; } }
 	.text { border-left: 6px solid var(--s); padding-left: clamp(16px, 2.5vw, 48px); min-width: 0; }
@@ -247,8 +250,8 @@
 	.pill { padding: 0.2em 0.75em; border-radius: 99px; background: var(--c); color: #fff; font-weight: 700; }
 	.cat { display: inline-flex; align-items: center; gap: 0.4em; font-weight: 600; }
 	.cat::before { content: ''; width: 0.6em; height: 0.6em; border-radius: 50%; background: var(--c); }
-	.photo { min-height: 0; height: 100%; max-height: 52vh; display: flex; align-items: center; justify-content: center; }
-	.photo :global(img) { max-width: 100%; max-height: 52vh; object-fit: contain; border-radius: 12px; box-shadow: 0 2vh 6vh rgba(10, 20, 30, 0.2); }
+	.photo { min-height: 0; height: 100%; display: flex; }
+	.photo :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 12px; box-shadow: 0 2vh 6vh rgba(10, 20, 30, 0.2); }
 	.empty { color: var(--muted); font-size: 20px; }
 
 	.months { min-width: 0; }
@@ -258,9 +261,10 @@
 	}
 	/* Tall and narrow (a phone upright): photo above the text, controls wrap under the year. */
 	@media (max-aspect-ratio: 1/1) {
-		.moment.hasph { grid-template-columns: minmax(0, 1fr); }
-		.moment.hasph .photo { order: -1; max-height: 30vh; }
-		.photo :global(img) { max-height: 30vh; }
+		.moment.hasph { height: auto; grid-template-columns: minmax(0, 1fr); }
+		.moment.hasph .photo { order: -1; height: 20vh; }
+		.moment.hasph .note { -webkit-line-clamp: 2; line-clamp: 2; }
+		.moment.hasph .em { display: none; }
 		.ui { margin-left: 0; width: 100%; justify-content: flex-start; }
 		.info { font-size: 15px; }
 		.em { font-size: 44px; margin-bottom: 8px; }

@@ -184,9 +184,9 @@ export function demoPhotoSvg(path: string): string | null {
 <rect width="1200" height="800" fill="url(#glow)"/>
 ${beams}
 <g fill="#000" opacity="0.28">${heads}<rect y="730" width="1200" height="70"/></g>
-<text x="600" y="330" text-anchor="middle" font-size="170" font-family="'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">${f.emoji}</text>
+<text x="600" y="355" text-anchor="middle" font-size="150" font-family="'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">${f.emoji}</text>
 <text x="600" y="${400 + size}" text-anchor="middle" font-size="${size}" font-weight="800" fill="#fff" font-family="'Bricolage Grotesque',system-ui,sans-serif" letter-spacing="-1">${xml(f.name)}</text>
 <text x="600" y="${455 + size}" text-anchor="middle" font-size="38" fill="#fff" opacity="0.85" font-family="'Bricolage Grotesque',system-ui,sans-serif">${xml(f.place)}</text>
-<g transform="translate(485 40)"><rect width="230" height="54" rx="27" fill="#000" opacity="0.35"/><text x="115" y="36" text-anchor="middle" font-size="26" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">Voorbeeldfoto</text></g>
+<g transform="translate(485 135)"><rect width="230" height="54" rx="27" fill="#000" opacity="0.35"/><text x="115" y="36" text-anchor="middle" font-size="26" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">Voorbeeldfoto</text></g>
 </svg>`;
 }
