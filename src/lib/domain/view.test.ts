@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -46,5 +46,26 @@ describe('view helpers', () => {
 		let n = 0;
 		const d = demoTimeline(now, () => `d${n++}`);
 		expect(countInScope(d.moments, d.timeline.scope)).toBe(d.moments.length);
+	});
+	it('lays out a month Monday-first with what happens each day', () => {
+		const p = occurrenceInYear({ ...base, date: '2026-09-28', end: '2026-10-02' }, 2026)!;
+		const one = occurrenceInYear({ ...base, date: '2026-09-05' }, 2026)!;
+		const g = monthGrid([p, one], 2026, 8, now);
+		expect(g.lead).toBe(1); // 1 September 2026 is a Tuesday
+		expect(g.days).toHaveLength(30);
+		expect(g.days[4]).toMatchObject({ d: 5, weekend: true, inPeriod: false });
+		expect(g.days[4].here).toHaveLength(1);
+		expect(g.days[29].inPeriod).toBe(true);
+		expect(g.days[25].today).toBe(true);
+	});
+	it('lays periods out as bars in rows that do not overlap', () => {
+		const long = occurrenceInYear({ ...base, id: 'a', date: '2026-01-01', end: '2026-12-31' }, 2026)!;
+		const trip = occurrenceInYear({ ...base, id: 'b', date: '2026-06-10', end: '2026-06-20' }, 2026)!;
+		const next = occurrenceInYear({ ...base, id: 'c', date: '2026-06-25', end: '2026-07-05' }, 2026)!;
+		const bars = monthBars([trip, next, long], 2026, 5);
+		expect(bars.map((b) => [b.o.moment.id, b.from, b.to, b.lane])).toEqual([['a', 1, 30, 0], ['b', 10, 20, 1], ['c', 25, 30, 1]]);
+		expect(bars[0]).toMatchObject({ before: true, after: true });
+		expect(bars[2]).toMatchObject({ before: false, after: true });
+		expect(monthBars([trip, next, long], 2026, 5, 1)).toHaveLength(1);
 	});
 });

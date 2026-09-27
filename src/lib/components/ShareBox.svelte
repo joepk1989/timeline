@@ -75,4 +75,8 @@
 	.item small { color: var(--muted); }
 	.who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 	.item button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+
+	/* Hover */
+	.item button { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) { .item button:hover { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); border-color: var(--muted); } }
 </style>

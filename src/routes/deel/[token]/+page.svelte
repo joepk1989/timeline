@@ -73,4 +73,8 @@
 	button { padding: 11px 16px; border-radius: 8px; border: none; background: var(--ink); color: var(--surface); font: inherit; font-weight: 600; cursor: pointer; }
 	a { color: var(--accent); font-weight: 600; }
 	.err { color: var(--danger); }
+
+	/* Hover */
+	button { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) { button:hover { background: color-mix(in srgb, var(--ink) 85%, var(--surface)); } }
 </style>

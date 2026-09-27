@@ -9,9 +9,8 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import Menu from '$lib/components/Menu.svelte';
 	import Pager from '$lib/components/Pager.svelte';
-	import ShowSetup from '$lib/components/ShowSetup.svelte';
 	import SignIn from '$lib/components/SignIn.svelte';
-	import Slideshow from '$lib/components/Slideshow.svelte';
+	import Presenter from '$lib/components/Presenter.svelte';
 	import TimelineEditor from '$lib/components/TimelineEditor.svelte';
 	import TimelinePicker from '$lib/components/TimelinePicker.svelte';
 	import Toast from '$lib/components/Toast.svelte';
@@ -68,9 +67,8 @@
 {#if ui.tlEdit}<TimelineEditor />{/if}
 {#if ui.editor}<Editor />{/if}
 {#if ui.gallery}<Gallery />{/if}
-{#if ui.showSetup}<ShowSetup />{/if}
 {#if ui.account}<SignIn />{/if}
-{#if ui.show}<Slideshow />{/if}
+{#if ui.present}<Presenter />{/if}
 <Toast />
 
 <style>
@@ -80,4 +78,16 @@
 	.ro { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 6; padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 14px; font-weight: 600; }
 	@media (min-width: 2300px) and (min-height: 1250px) { .fab { zoom: 1.25; } }
 	@media (min-width: 3200px) and (min-height: 1400px) { .fab { zoom: 1.5; } }
+
+	/* Hover */
+	.fab { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) { .fab:hover { background: color-mix(in srgb, var(--ink) 85%, var(--surface)); box-shadow: 0 10px 28px rgba(10, 20, 30, 0.3); } }
+
+	/* Morphing into and out of presenting (see state/present.ts). */
+	:global(::view-transition-group(*)) { animation-duration: 0.55s; animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); }
+	:global(::view-transition-old(root)) { animation-duration: 0.3s; }
+	:global(::view-transition-new(root)) { animation-duration: 0.45s; animation-delay: 0.1s; }
+	/* Keep the months and the line next to the year at their own size while they move, instead of stretching. */
+	:global(::view-transition-old(pres-months)), :global(::view-transition-new(pres-months)),
+	:global(::view-transition-old(pres-info)), :global(::view-transition-new(pres-info)) { height: 100%; width: auto; object-fit: none; object-position: left top; }
 </style>

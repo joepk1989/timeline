@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear, virtualMoments } from './occurrences';
-import { buildSlides, yearLayout, yearPosition } from './slides';
+import { buildSlides, momentSlides, yearLayout, yearPosition } from './slides';
 
 const now = { y: 2026, m: 8, d: 26 };
 let n = 0;
@@ -35,5 +35,12 @@ describe('slides', () => {
 		const occs = ['2026-03-01', '2026-03-02', '2026-03-03'].map((date, i) => occurrenceInYear({ ...base, id: `x${i}`, date }, 2026)!);
 		const { markers } = yearLayout(occs, 2026);
 		expect(markers.map((m) => m.lane)).toEqual([0, 1, 2]);
+	});
+	it('makes one slide per moment for presenting on the timeline screen, starting at a given year', () => {
+		const { slides, start } = momentSlides(all, timeline.scope, 2026, now, { what: 'all', photos: false });
+		expect(slides.every((s) => s.kind === 'moment')).toBe(true);
+		expect(slides[start].y).toBe(2026);
+		expect(start > 0 && slides[start - 1].y < 2026).toBe(true);
+		expect(momentSlides(all, timeline.scope, 2026, now, { what: 'year', photos: false }).slides.every((s) => s.y === 2026)).toBe(true);
 	});
 });

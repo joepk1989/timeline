@@ -3,6 +3,7 @@ import { supabase } from '$lib/supabase';
 import { KINDS } from '$lib/domain/kinds';
 import { today } from '$lib/domain/dates';
 import { demoTimeline } from '$lib/domain/demo';
+import { addMissingFestivalPhotos, demoPhotoSvg, festivalTimeline, isDemoPhoto } from '$lib/domain/festivals';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -101,6 +102,7 @@ class AppState {
 		}
 		if (this.timelines.length) this.temp = null;
 		else this.temp ??= blank(this.now.y);
+		await this.upgradeDemos();
 		if (!this.timelines.some((t) => t.id === this.curId)) this.curId = this.timelines[0]?.id ?? null;
 		const t = this.tl;
 		if (fresh || t.scope.from !== this.scope.from || t.scope.to !== this.scope.to) {
@@ -200,7 +202,7 @@ class AppState {
 		}
 		try {
 			await this.backend.deleteTimeline(id);
-			await this.backend.deletePhotos(photos).catch(() => {});
+			await this.deletePhotos(photos);
 			this.toast(`“${t.name}” is verwijderd`);
 		} catch {
 			this.toast('Niet alles kon worden verwijderd');
@@ -215,15 +217,25 @@ class AppState {
 		this.toast('Je volgt deze tijdlijn niet meer');
 	}
 
-	async loadDemo() {
-		const existing = this.timelines.find((t) => t.demo);
+	/** A festival demo loaded before the demo had photos gets its placeholder photos. */
+	private async upgradeDemos() {
+		const fixed = this.timelines.flatMap((t) => (this.roles[t.id] === 'owner' ? addMissingFestivalPhotos(t, this.moments) : []));
+		if (!fixed.length) return;
+		const byId = new Map(fixed.map((m) => [m.id, m]));
+		this.moments = this.moments.map((m) => byId.get(m.id) ?? m);
+		await this.backend.saveMoments(fixed).catch(() => {});
+	}
+
+	/** Loads a demo: a whole life, or the festivals in the Netherlands for the coming ten years. */
+	async loadDemo(which: 'leven' | 'festivals' = 'leven') {
+		const { timeline, moments } = (which === 'festivals' ? festivalTimeline : demoTimeline)(this.now, newId);
+		const existing = this.timelines.find((t) => t.demo && t.name === timeline.name);
 		if (existing) {
 			this.switchTo(existing.id);
 			this.toast('De demo staat er al');
 			return;
 		}
 		this.toast('Demo wordt geladen…');
-		const { timeline, moments } = demoTimeline(this.now, newId);
 		if (!(await this.saveTimeline(timeline))) return;
 		this.moments.push(...moments);
 		this.switchTo(timeline.id);
@@ -233,6 +245,22 @@ class AppState {
 		} catch (e) {
 			this.fail(e);
 		}
+	}
+
+	/* ---------- photos ---------- */
+	// Demo photos ("demo:...") are drawn by the domain, not stored; everything else goes to the backend.
+
+	async photoUrl(path: string): Promise<string> {
+		const svg = demoPhotoSvg(path);
+		return svg != null ? 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) : this.backend.photoUrl(path);
+	}
+	async photoBlob(path: string): Promise<Blob | null> {
+		const svg = demoPhotoSvg(path);
+		return svg != null ? new Blob([svg], { type: 'image/svg+xml' }) : this.backend.photoBlob(path).catch(() => null);
+	}
+	async deletePhotos(paths: string[]) {
+		const stored = paths.filter((p) => !isDemoPhoto(p));
+		if (stored.length) await this.backend.deletePhotos(stored).catch(() => {});
 	}
 
 	/* ---------- moments ---------- */
@@ -263,7 +291,7 @@ class AppState {
 		}
 		let undone = false;
 		this.toast(`“${m.title}” verwijderd`, { label: 'Ongedaan maken', fn: () => { undone = true; this.saveMoment(m); this.toast('Moment teruggezet'); } }, 7000);
-		setTimeout(() => { if (!undone) this.backend.deletePhotos(m.photos).catch(() => {}); }, 7600);
+		setTimeout(() => { if (!undone) this.deletePhotos(m.photos); }, 7600);
 	}
 
 	/* ---------- account ---------- */
@@ -323,7 +351,7 @@ class AppState {
 		const files = [{ name: 'backup.json', data: enc.encode(JSON.stringify(makeBackup(own, moments, new Date().toISOString()), null, 2)) }];
 		const paths = moments.flatMap((m) => m.photos);
 		for (const [i, p] of paths.entries()) {
-			const blob = await this.backend.photoBlob(p).catch(() => null);
+			const blob = isDemoPhoto(p) ? null : await this.photoBlob(p);
 			if (blob) files.push({ name: 'photos/' + p, data: new Uint8Array(await blob.arrayBuffer()) });
 			onProgress?.(i + 1, paths.length);
 		}
@@ -363,6 +391,7 @@ class AppState {
 			for (const m of parsed.moments) {
 				const out: string[] = [];
 				for (const p of m.photos) {
+					if (isDemoPhoto(p)) { out.push(p); continue; }
 					const data = photos.get(p);
 					if (data) out.push(await this.backend.uploadPhoto(m.timelineId, new Blob([data], { type: 'image/jpeg' })));
 				}

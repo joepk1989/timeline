@@ -179,4 +179,8 @@
 	}
 	@media (min-width: 2300px) and (min-height: 1250px) { .page-in { zoom: 1.25; } }
 	@media (min-width: 3200px) and (min-height: 1400px) { .page-in { zoom: 1.5; } }
+
+	/* Hover */
+	.cell { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) { .cell:hover { filter: var(--hover-filter); border-color: var(--s); } }
 </style>

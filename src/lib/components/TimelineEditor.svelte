@@ -7,6 +7,7 @@
 	import { newId } from '$lib/data/backend';
 	import type { Category, TimelineKind } from '$lib/domain/types';
 	import Btn from './Btn.svelte';
+	import DemoPicker from './DemoPicker.svelte';
 	import Dialog from './Dialog.svelte';
 	import ShareBox from './ShareBox.svelte';
 
@@ -80,7 +81,7 @@
 					<button type="button" class="type" onclick={() => choose(kk)}><span class="e">{KINDS[kk].emoji}</span><b>{KINDS[kk].label}</b><small>{KINDS[kk].hint}</small></button>
 				{/each}
 			</div>
-			<Btn variant="link" onclick={() => { close(); app.loadDemo(); }}>Of bekijk eerst een demo met een heel leven erin</Btn>
+			<div class="demo"><span>Of bekijk eerst een voorbeeld:</span><DemoPicker onpick={close} label="Kies een demo" /></div>
 		{:else}
 			{#if !existing}<Btn variant="link" onclick={() => (kind = null)}>Ander soort kiezen</Btn>{/if}
 			<label>Naam<input type="text" maxlength="40" placeholder={k!.namePlaceholder} bind:value={name} bind:this={nameEl} /></label>
@@ -127,4 +128,13 @@
 	.sw { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); flex: 0 0 auto; padding: 0; cursor: pointer; }
 	.x { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); flex: 0 0 auto; cursor: pointer; }
 	.x:disabled { opacity: 0.4; cursor: default; }
+
+	/* Hover */
+	.type, .sw, .x { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.type:hover { background: var(--hover); }
+		.sw:hover { box-shadow: 0 0 0 2px var(--muted); }
+		.x:hover:not(:disabled) { background: var(--hover); border-color: var(--muted); }
+	}
+	.demo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; color: var(--muted); }
 </style>

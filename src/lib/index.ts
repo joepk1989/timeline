@@ -10,3 +10,4 @@ export * from './domain/backup';
 export * from './domain/export';
 export * from './domain/exif';
 export * from './domain/zip';
+export * from './domain/festivals';

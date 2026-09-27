@@ -19,8 +19,8 @@ tijdlijnen en momenten in de browser, foto's in IndexedDB.
 - **Jaren en maanden**: swipen of pijltjestoetsen, seizoensbalk, kalender of "op een rij", dagoverzicht.
 - **Momenten**: jaar, maand of dag, periodes, elk jaar terugkerend, status (bij doelen en plannen), notitie en foto's.
 - **Foto's**: worden verkleind voor het opslaan; de datum uit de foto (EXIF) wordt overgenomen. Fotoraster per jaar en maand, galerij.
-- **Meerdere tijdlijnen**: een kind, jezelf, een relatie, een huisdier, een huis, een bedrijf, doelen of iets anders. Met demo.
-- **Presenteren**: titel, jaaroverzicht en een dia per moment; volledig scherm, toetsen en swipen.
+- **Meerdere tijdlijnen**: een kind, jezelf, een relatie, een huisdier, een huis, een bedrijf, doelen of iets anders. Met twee demo's: een heel leven, en de festivals in Nederland van de komende tien jaar (datums geschat op het vaste patroon van elk festival).
+- **Presenteren**: hetzelfde scherm op volledig scherm. Het jaar blijft bovenaan, de momenten komen één voor één groot in beeld en de maanden staan onderaan, met de dag van het moment gemarkeerd. Toetsen, swipen en klikken op een maand of dag om erheen te springen.
 - **Back-up en export**: zip met alles inclusief foto's (en terugzetten, ook back-ups van het oude prototype),
   printversie met of zonder foto's (print als PDF), en de presentatie als los bestand dat offline werkt.
 - **Inloggen en delen** (met database): inloggen via een link in je e-mail, uitnodigingslinks om te bekijken of mee te bewerken,

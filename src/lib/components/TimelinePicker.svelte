@@ -4,6 +4,7 @@
 	import { KINDS } from '$lib/domain/kinds';
 	import { momentsLabel } from '$lib/domain/view';
 	import Btn from './Btn.svelte';
+	import DemoPicker from './DemoPicker.svelte';
 	import Dialog from './Dialog.svelte';
 
 	const list = $derived((app.timelines.length ? app.timelines : app.temp ? [app.temp] : []).toSorted((a, b) => a.name.localeCompare(b.name)));
@@ -33,7 +34,7 @@
 		</div>
 		<div class="actions">
 			<Btn variant="ghost" onclick={close}>Sluiten</Btn>
-			<Btn variant="ghost" onclick={() => { close(); app.loadDemo(); }}>Demo laden</Btn>
+			<DemoPicker onpick={close} />
 			<Btn onclick={() => (ui.tlEdit = { id: null, first: false })}>Nieuwe tijdlijn</Btn>
 		</div>
 	</div>
@@ -49,4 +50,11 @@
 	.tx b { display: block; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.tx small { color: var(--muted); font-size: 13px; }
 	.set { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+
+	/* Hover */
+	.row, .set { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
+	@media (hover: hover) {
+		.row:hover:not(.on) { border-color: var(--muted); }
+		.set:hover { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); border-color: var(--muted); }
+	}
 </style>

@@ -60,4 +60,8 @@
 	.empty p { font-size: 20px; color: var(--ink); margin: 0 0 4px; font-weight: 600; }
 	.empty :global(button) { margin-top: 16px; }
 	@media (min-width: 1200px) { .grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; } }
+
+	/* Hover */
+	.tile :global(img) { transition: transform 0.25s ease, filter 0.15s; }
+	@media (hover: hover) { .tile:hover :global(img) { transform: scale(1.04); filter: var(--hover-filter); } }
 </style>
