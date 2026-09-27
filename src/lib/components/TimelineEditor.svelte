@@ -7,6 +7,7 @@
 	import { newId } from '$lib/data/backend';
 	import type { Category, TimelineKind } from '$lib/domain/types';
 	import Btn from './Btn.svelte';
+	import DemoPicker from './DemoPicker.svelte';
 	import Dialog from './Dialog.svelte';
 	import ShareBox from './ShareBox.svelte';
 
@@ -80,8 +81,7 @@
 					<button type="button" class="type" onclick={() => choose(kk)}><span class="e">{KINDS[kk].emoji}</span><b>{KINDS[kk].label}</b><small>{KINDS[kk].hint}</small></button>
 				{/each}
 			</div>
-			<Btn variant="link" onclick={() => { close(); app.loadDemo('leven'); }}>Of bekijk eerst een demo met een heel leven erin</Btn>
-			<Btn variant="link" onclick={() => { close(); app.loadDemo('festivals'); }}>Of de festivals in Nederland van de komende tien jaar</Btn>
+			<div class="demo"><span>Of bekijk eerst een voorbeeld:</span><DemoPicker onpick={close} label="Kies een demo" /></div>
 		{:else}
 			{#if !existing}<Btn variant="link" onclick={() => (kind = null)}>Ander soort kiezen</Btn>{/if}
 			<label>Naam<input type="text" maxlength="40" placeholder={k!.namePlaceholder} bind:value={name} bind:this={nameEl} /></label>
@@ -136,4 +136,5 @@
 		.sw:hover { box-shadow: 0 0 0 2px var(--muted); }
 		.x:hover:not(:disabled) { background: var(--hover); border-color: var(--muted); }
 	}
+	.demo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; color: var(--muted); }
 </style>

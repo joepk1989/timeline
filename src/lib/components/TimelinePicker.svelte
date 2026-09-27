@@ -4,6 +4,7 @@
 	import { KINDS } from '$lib/domain/kinds';
 	import { momentsLabel } from '$lib/domain/view';
 	import Btn from './Btn.svelte';
+	import DemoPicker from './DemoPicker.svelte';
 	import Dialog from './Dialog.svelte';
 
 	const list = $derived((app.timelines.length ? app.timelines : app.temp ? [app.temp] : []).toSorted((a, b) => a.name.localeCompare(b.name)));
@@ -33,8 +34,7 @@
 		</div>
 		<div class="actions">
 			<Btn variant="ghost" onclick={close}>Sluiten</Btn>
-			<Btn variant="ghost" onclick={() => { close(); app.loadDemo('leven'); }}>Demo: een leven</Btn>
-			<Btn variant="ghost" onclick={() => { close(); app.loadDemo('festivals'); }}>Demo: festivals</Btn>
+			<DemoPicker onpick={close} />
 			<Btn onclick={() => (ui.tlEdit = { id: null, first: false })}>Nieuwe tijdlijn</Btn>
 		</div>
 	</div>
