@@ -22,19 +22,21 @@
 	);
 </script>
 
-<div class="page-in split">
-	<div class="pl">
-		<h2 class="big" class:now={y === app.now.y}>{y}</h2>
+<div class="page-in">
+	<h2 class="big" class:now={y === app.now.y}>{y}</h2>
+	<div class="info">
 		<div class="count">
 			{#if line}<span class="ageline">{line}{real.length ? ' · ' : ''}</span>{/if}{real.length ? momentsLabel(real.length) : line ? '' : 'Nog niets bijzonders'}
 		</div>
 		{#if stats.length}
 			<div class="stsum">{#each stats as s (s.name)}<span class="sst" style:--c={s.color}>{s.n} {s.name}</span>{/each}</div>
 		{/if}
+	</div>
+	<div class="acc">
 		<MonthAccordion {y} {occs} />
 		<p class="tip">Tik op een maand om de dagen te zien</p>
 	</div>
-	<div class="pr">
+	<div class="list">
 		<Content {occs} emptyTitle="Nog niets vastgelegd in {y}" emptySub="Maak het jaar, een maand of een dag bijzonder." onadd={() => (ui.menu = { y, m: null })} />
 	</div>
 </div>
@@ -54,12 +56,14 @@
 	}
 	@media (min-width: 1200px) {
 		.page-in { max-width: none; padding: 3vh 3vw 120px; }
-		.split { display: grid; grid-template-columns: minmax(360px, 32%) minmax(0, 1fr); gap: 0 4vw; align-items: start; }
-		.pl { position: sticky; top: 0; padding-top: 1vh; container-type: inline-size; }
-		.pr { padding-top: 2vh; }
-		.big { font-size: min(40cqi, 300px); }
-		.count { margin-top: 16px; }
-		.tip { margin-bottom: 0; }
+		/* Year and its line side by side, then the months across the full width, then the moments. */
+		.page-in { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'year info' 'acc acc' 'list list'; gap: 0 3vw; align-items: end; }
+		.big { grid-area: year; font-size: clamp(120px, 11vw, 260px); }
+		.info { grid-area: info; padding-bottom: 1vh; }
+		.count { margin: 0 0 8px; font-size: 18px; }
+		.stsum { margin: 0 0 8px; }
+		.acc { grid-area: acc; margin-top: 3vh; }
+		.list { grid-area: list; max-width: 1100px; padding-top: 1vh; }
 	}
 	@media (min-width: 2300px) and (min-height: 1250px) { .page-in { zoom: 1.25; } }
 	@media (min-width: 3200px) and (min-height: 1400px) { .page-in { zoom: 1.5; } }

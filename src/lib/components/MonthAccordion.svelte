@@ -95,7 +95,7 @@
 	.below { margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 	/* Wide enough: the month folds open in the row itself, the other months stay visible. */
 	@container (min-width: 460px) {
-		.col.open { flex: 0 0 calc(100% - 11 * 25px - 4px); min-width: 0; background: var(--surface); outline: none; box-shadow: inset 0 0 0 1px var(--line); }
+		.col.open { flex: 0 0 min(calc(100% - 11 * 25px - 4px), 520px); min-width: 0; background: var(--surface); outline: none; box-shadow: inset 0 0 0 1px var(--line); }
 		.col.open .head { display: none; }
 		.inline { display: block; padding-top: 4px; }
 		.below { display: none; }
@@ -124,10 +124,17 @@
 	.e { font-size: 12px; line-height: 1.1; }
 	.zoom { align-self: flex-start; border: none; background: transparent; padding: 2px 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; }
 
+	/* Full width: the closed months get room for their full name, the days a fixed height. */
+	@container (min-width: 900px) {
+		.short { font-size: 14px; font-weight: 600; }
+		.c { font-size: 15px; }
+		.es { flex-direction: row; flex-wrap: wrap; justify-content: center; font-size: 16px; gap: 2px; }
+		.day { aspect-ratio: auto; height: 46px; }
+		.n { font-size: 14px; }
+		.e { font-size: 15px; }
+	}
 	@media (min-width: 1200px) {
 		.row { min-height: clamp(72px, 8vh, 110px); }
-		.short { font-size: 13px; }
-		.col.open { width: min(340px, 60%); }
 	}
 	@media (prefers-reduced-motion: reduce) { .col { transition: none; } .body { animation: none; } }
 </style>
