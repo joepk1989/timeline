@@ -155,3 +155,55 @@ export function monthBars(occs: Occurrence[], y: number, m: number, lanes = 3): 
 	}
 	return out;
 }
+
+/** Day of the year, 0-based (1 January = 0). */
+export const dayOfYear = (y: number, m: number, d: number) => Math.round((Date.UTC(y, m, d) - Date.UTC(y, 0, 1)) / 86_400_000);
+
+export interface YearLineItem {
+	o: Occurrence;
+	/** First and last day of the year it covers (0-based, clipped to the year). */
+	from: number;
+	to: number;
+	/** Column, so things on the same days sit side by side. */
+	lane: number;
+}
+
+/**
+ * The year as one line per day: every dated moment and period as a run of days, spread over
+ * side-by-side lanes where they overlap. A month without a day covers the whole month; whole-year moments are left out.
+ */
+export function yearLines(occs: Occurrence[], y: number): { days: number; items: YearLineItem[]; lanes: number } {
+	const days = Math.round((Date.UTC(y + 1, 0, 1) - Date.UTC(y, 0, 1)) / 86_400_000);
+	const spans = occs
+		.filter((o) => o.m != null)
+		.map((o) => {
+			const start = o.y < y ? 0 : dayOfYear(y, o.m!, o.d ?? 1);
+			let end: number;
+			if (o.end) end = o.end.y > y ? days - 1 : dayOfYear(y, o.end.m, o.end.d);
+			else end = o.d != null ? start : dayOfYear(y, o.m!, daysInMonth(y, o.m!));
+			return { o, from: start, to: end };
+		})
+		.sort((a, b) => a.from - b.from || b.to - a.to);
+	const ends: number[] = [];
+	const items = spans.map(({ o, from, to }) => {
+		let lane = ends.findIndex((e) => e < from);
+		if (lane < 0) lane = ends.length;
+		ends[lane] = to;
+		return { o, from, to, lane };
+	});
+	return { days, items, lanes: ends.length };
+}
+
+/**
+ * Places labels of height `h` as close as possible to where they belong (`wanted`, sorted top to bottom),
+ * without overlapping: a label that would overlap is pushed down, and a crowd at the bottom is pushed back up.
+ */
+export function placeLabels(wanted: number[], h: number, max = Infinity): number[] {
+	const out: number[] = [];
+	for (const w of wanted) out.push(Math.max(w, out.length ? out[out.length - 1] + h : -Infinity));
+	for (let i = out.length - 1; i >= 0; i--) {
+		const limit = i === out.length - 1 ? max - h : out[i + 1] - h;
+		if (out[i] > limit) out[i] = Math.max(limit, 0);
+	}
+	return out;
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { dayOfYear, placeLabels, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -67,5 +67,26 @@ describe('view helpers', () => {
 		expect(bars[0]).toMatchObject({ before: true, after: true });
 		expect(bars[2]).toMatchObject({ before: false, after: true });
 		expect(monthBars([trip, next, long], 2026, 5, 1)).toHaveLength(1);
+	});
+	it('lays out the year as one line per day, with overlapping moments side by side', () => {
+		expect(dayOfYear(2026, 0, 1)).toBe(0);
+		expect(dayOfYear(2026, 11, 31)).toBe(364);
+		const fest = occurrenceInYear({ ...base, id: 'a', date: '2026-06-19', end: '2026-06-21' }, 2026)!;
+		const long = occurrenceInYear({ ...base, id: 'b', date: '2026-06-12', end: '2026-06-21' }, 2026)!;
+		const one = occurrenceInYear({ ...base, id: 'c', date: '2026-05-05' }, 2026)!;
+		const month = occurrenceInYear({ ...base, id: 'd', date: '2026-09' }, 2026)!;
+		const cross = occurrenceInYear({ ...base, id: 'e', date: '2025-12-27', end: '2026-01-03' }, 2026)!;
+		const whole = occurrenceInYear({ ...base, id: 'f', date: '2026' }, 2026)!;
+		const r = yearLines([fest, long, one, month, cross, whole], 2026);
+		expect(r.days).toBe(365);
+		expect(r.items.map((i) => [i.o.moment.id, i.from, i.to, i.lane])).toEqual([
+			['e', 0, 2, 0], ['c', 124, 124, 0], ['b', 162, 171, 0], ['a', 169, 171, 1], ['d', 243, 272, 0]
+		]);
+		expect(r.lanes).toBe(2);
+		expect(yearLines([], 2028).days).toBe(366);
+	});
+	it('places labels without overlap, as close to their spot as possible', () => {
+		expect(placeLabels([0, 5, 100], 20)).toEqual([0, 20, 100]);
+		expect(placeLabels([90, 95], 20, 110)).toEqual([70, 90]);
 	});
 });
