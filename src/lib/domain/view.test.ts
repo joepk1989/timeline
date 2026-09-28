@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { dayOfYear, placeLabels, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { dayOfYear, monthSpans, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -88,5 +88,21 @@ describe('view helpers', () => {
 	it('places labels without overlap, as close to their spot as possible', () => {
 		expect(placeLabels([0, 5, 100], 20)).toEqual([0, 20, 100]);
 		expect(placeLabels([90, 95], 20, 110)).toEqual([70, 90]);
+	});
+});
+
+describe('monthSpans', () => {
+	it('shares the line by length, or gives an open month its share', () => {
+		const even = monthSpans(2027, 365);
+		expect(even.map((s) => s.width)).toEqual([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]);
+		expect(yearX(even, 0)).toBe(0);
+		expect(yearX(even, 31)).toBe(31);
+		expect(yearX(even, 365)).toBe(365);
+		const open = monthSpans(2027, 1000, 6, 0.4);
+		expect(open[6].width).toBe(400);
+		expect(open[11].left + open[11].width).toBeCloseTo(1000);
+		expect(open[0].width / open[1].width).toBeCloseTo(31 / 28);
+		expect(yearX(open, open[6].start + 15.5)).toBeCloseTo(open[6].left + 200);
+		expect(monthSpans(2028, 366)[1].days).toBe(29);
 	});
 });

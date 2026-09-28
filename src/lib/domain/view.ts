@@ -207,3 +207,27 @@ export function placeLabels(wanted: number[], h: number, max = Infinity): number
 	}
 	return out;
 }
+
+export interface MonthSpan { m: number; start: number; days: number; left: number; width: number; }
+
+/** How wide each month is on a line of `total` px. An open month takes `share` of it, the rest share what is left by length. */
+export function monthSpans(y: number, total: number, open: number | null = null, share = 0.35): MonthSpan[] {
+	const days = Array.from({ length: 12 }, (_, m) => daysInMonth(y, m));
+	const year = days.reduce((a, b) => a + b, 0);
+	const openW = open == null ? 0 : total * share;
+	const per = (total - openW) / (year - (open == null ? 0 : days[open]));
+	let left = 0, start = 0;
+	return days.map((n, m) => {
+		const width = m === open ? openW : n * per;
+		const s = { m, start, days: n, left, width };
+		left += width;
+		start += n;
+		return s;
+	});
+}
+
+/** Where day `doy` of the year (0-based, may be fractional) starts on the line. */
+export function yearX(spans: MonthSpan[], doy: number): number {
+	const s = spans.find((s) => doy < s.start + s.days) ?? spans[spans.length - 1];
+	return s.left + ((Math.min(doy, s.start + s.days) - s.start) * s.width) / s.days;
+}
