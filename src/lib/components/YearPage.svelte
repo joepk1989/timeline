@@ -39,7 +39,7 @@
 		<div style:view-transition-name={morphs ? 'pres-months' : null}><MonthTabs {y} {occs} /></div>
 		<p class="tip">{canHover ? 'Beweeg over de maanden om ze te bekijken, klik om er een te kiezen' : 'Tik op een maand om de dagen te zien'}</p>
 	</div>
-	<div class="list">
+	<div class="list" class:wide={app.viewMode === 'lines'}>
 		<Content {occs} year={y} emptyTitle="Nog niets vastgelegd in {y}" emptySub="Maak het jaar, een maand of een dag bijzonder." onadd={() => (ui.menu = { y, m: null })} />
 	</div>
 </div>
@@ -67,6 +67,7 @@
 		.stsum { margin: 0 0 8px; }
 		.acc { grid-area: acc; margin-top: 3vh; }
 		.list { grid-area: list; max-width: 1100px; padding-top: 1vh; }
+		.list.wide { max-width: none; }
 	}
 	@media (min-width: 2300px) and (min-height: 1250px) { .page-in { zoom: 1.25; } }
 	@media (min-width: 3200px) and (min-height: 1400px) { .page-in { zoom: 1.5; } }

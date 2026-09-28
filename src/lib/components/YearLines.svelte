@@ -15,10 +15,13 @@
 	const TOP = 22; // month names
 	const GAP = 22; // room for the joining lines
 
-	let width = $state(0);
+	// The line breaks out of the page column to the full width of the screen, keeping the page's edge.
+	let vw = $state(0);
 	let scroller = $state<HTMLDivElement>();
+	const pad = $derived(vw >= 1200 ? vw * 0.03 : vw > 640 ? 24 : 14);
+	const width = $derived(vw - 2 * pad);
 	const lines = $derived(yearLines(occs, y));
-	const day = $derived(Math.max(3, width / (lines.days || 365))); // px per day
+	const day = $derived(Math.max(2, (vw - 2 * pad) / (lines.days || 365))); // px per day
 	const full = $derived(lines.days * day);
 	const ruler = $derived(Math.max(36, lines.lanes * LANE + 8));
 	const labelsY = $derived(TOP + ruler + GAP);
@@ -30,7 +33,7 @@
 
 	// On a narrow screen, start at today.
 	$effect(() => {
-		if (scroller && today != null && full > width) scroller.scrollLeft = today - width / 2;
+		if (scroller && today != null && full > width) scroller.scrollLeft = today + pad - vw / 2;
 	});
 
 	const color = (o: Occurrence) => (o.moment.virtual ? 'var(--accent)' : app.catOf(o.moment.categoryId).color);
@@ -40,8 +43,10 @@
 	}
 </script>
 
+<svelte:window bind:innerWidth={vw} />
+
 {#if lines.items.length}
-	<div class="scroll" bind:clientWidth={width} bind:this={scroller}>
+	<div class="scroll" bind:this={scroller} style:--pad="{pad}px">
 		<div class="wrap" style:width="{full}px" style:--day="{day}px" style:--top="{TOP}px" style:--ruler="{ruler}px" style:--labels="{labelsY}px" role="group" aria-label="Het jaar {y} in lijnen, één per dag">
 			{#each months as mo (mo.m)}
 				<div class="month" style:left="{mo.left}px" style:--s="var(--{season(mo.m)})"><span>{mo.name}</span></div>
@@ -89,8 +94,8 @@
 {/if}
 
 <style>
-	.scroll { overflow-x: auto; overflow-y: hidden; margin: 4px 0 24px; scrollbar-width: thin; }
-	.wrap { position: relative; height: calc(var(--labels) + 300px); }
+	.scroll { overflow-x: auto; overflow-y: hidden; margin: 4px calc(50% - 50vw) 24px; scrollbar-width: thin; }
+	.wrap { position: relative; margin: 0 var(--pad); height: calc(var(--labels) + 300px); }
 	/* 365 lines: one per day, drawn as a repeating background. */
 	.ruler { position: absolute; top: var(--top); left: 0; right: 0; height: var(--ruler);
 		background: repeating-linear-gradient(to right, var(--line) 0 calc(var(--day) - 1px), transparent calc(var(--day) - 1px) var(--day)); border-radius: 2px; }
