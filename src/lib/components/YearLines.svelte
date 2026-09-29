@@ -63,6 +63,8 @@
 	}
 	let fill = $state(0); // the height left on the screen, so the year fills it
 	const open = $derived(pinned ?? openMonth ?? hover);
+	/** The month whose days are columns you can point at and click: the one over the full width, or the one pointed at. */
+	const dm = $derived(pinned ?? (compact ? null : hover));
 	const lines = $derived(yearLines(occs, y));
 	// On a phone the year scrolls sideways: a month is at least 110px wide.
 	const full = $derived(pinned != null ? vw : Math.max(vw, 12 * 110));
@@ -73,8 +75,8 @@
 	// In a month over the full width the days can be wide or narrow (one pointed at, or zoomed into), so
 	// time there is placed by the days themselves.
 	const x = (doy: number) => {
-		if (pinned == null || !dayParts) return yearX(spans, doy);
-		const sp = spans[pinned];
+		if (dm == null || !dayParts) return yearX(spans, doy);
+		const sp = spans[dm];
 		if (doy < sp.start || doy > sp.start + sp.days) return yearX(spans, doy);
 		return sp.left + partX(dayParts, doy - sp.start);
 	};
@@ -137,7 +139,10 @@
 	function point(m: number | null, e: PointerEvent) {
 		if (e.pointerType !== 'mouse' || pinned != null) return;
 		clearTimeout(timer);
-		timer = setTimeout(() => (hover = m), m == null ? 250 : 90);
+		timer = setTimeout(() => {
+			if (hover !== m) dayHover = null;
+			hover = m;
+		}, m == null ? 250 : 90);
 	}
 	function pin(m: number | null) {
 		clearTimeout(timer);
@@ -167,22 +172,22 @@
 		dayTimer = setTimeout(() => (dayHover = d), d == null ? 250 : 90);
 	}
 	const dayParts = $derived.by(() => {
-		if (pinned == null) return null;
-		const sp = spans[pinned];
+		if (dm == null) return null;
+		const sp = spans[dm];
 		if (wide && day != null) return partSpans(sp.width, sp.days, day - 1, 1 - ((sp.days - 1) * dstrip) / sp.width);
 		const open = day ?? dayHover;
 		if (open == null) return partSpans(sp.width, sp.days);
 		return partSpans(sp.width, sp.days, open - 1, Math.min(0.3, Math.max(4 / sp.days, 110 / sp.width)));
 	});
 	function dayBox(i: number): { left: number; width: number } {
-		const sp = spans[pinned!];
+		const sp = spans[dm!];
 		const p = dayParts![i];
 		return { left: sp.left + p.left, width: p.width };
 	}
-	/** Days of the month over the full width with something of their own on them (not a month or year long): a dot. */
+	/** Days of the month that has its days as columns, with something of their own on them (not a month or year long): a dot. */
 	function busy(i: number): boolean {
-		if (pinned == null) return false;
-		const doy = spans[pinned].start + i;
+		if (dm == null) return false;
+		const doy = spans[dm].start + i;
 		return lines.items.some((it) => it.from <= doy && it.to >= doy && it.to - it.from < 27);
 	}
 	function back() {
@@ -212,7 +217,7 @@
 		onpointerleave={(e) => { point(null, e); pointDay(null, e); }}
 	>
 		{#each spans as sp (sp.m)}
-			<div class="col" class:open={open === sp.m} class:pinned={pinned === sp.m} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
+			<div class="col" class:open={open === sp.m} class:days={dm === sp.m} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
 			<button
 				class="month"
 				class:open={open === sp.m}
@@ -226,15 +231,15 @@
 				onclick={() => (pinned === sp.m && day != null ? (day = null) : pin(pinned === sp.m ? null : sp.m))}
 			>
 				<span class="name"><b>{String(sp.m + 1).padStart(2, '0')}</b> {MONTHS[sp.m]}</span>
-				{#if open === sp.m && pinned !== sp.m}
+				{#if open === sp.m && dm !== sp.m}
 					<span class="nums" aria-hidden="true">
 						{#each { length: sp.days } as _, d (d)}<span class:we={[0, 6].includes(new Date(y, sp.m, d + 1).getDay())}>{sp.width / sp.days >= 15 || d % 2 === 0 ? d + 1 : ''}</span>{/each}
 					</span>
 				{/if}
 			</button>
 		{/each}
-		{#if pinned != null && !compact}
-			{@const sp = spans[pinned]}
+		{#if dm != null && !compact}
+			{@const sp = spans[dm]}
 			{#each { length: sp.days } as _, i (i)}
 				{@const box = dayBox(i)}
 				{#if day === i + 1}
@@ -257,7 +262,11 @@
 						style:width="{box.width}px"
 						aria-label="{i + 1} {MONTHS[sp.m]} bekijken"
 						onpointerenter={(e) => pointDay(i + 1, e)}
-						onclick={() => openDay(i + 1)}
+						onclick={() => {
+							// From a month pointed at in the year, a click on a day goes straight to that day.
+							if (pinned !== sp.m) pin(sp.m);
+							openDay(i + 1);
+						}}
 					><span>{box.width >= 60 ? `${WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} ${i + 1}` : i + 1}</span></button>
 				{/if}
 			{/each}
@@ -290,7 +299,7 @@
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, on top a bar in the colour of its season, the only colour here. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
-	.col.open:not(.pinned) { background: repeating-linear-gradient(to right, transparent 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
+	.col.open:not(.days) { background: repeating-linear-gradient(to right, transparent 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
 	/* The colour is only on the band with the month's name; the days below it have none. */
 	.wrap { --numrow: 28px; }
 	.wrap.compact { --numrow: 19px; }
