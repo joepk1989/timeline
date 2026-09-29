@@ -11,6 +11,7 @@
 	import { dayOfYear, monthSpans, packRows, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import DayLine from './DayLine.svelte';
+	import Icon from './Icon.svelte';
 
 	let {
 		y,
@@ -52,6 +53,14 @@
 	let pinned = $state<number | null>(null);
 	// In a month over the full width, a click on a day zooms in once more, onto that day.
 	let day = $state<number | null>(null);
+	// The day zoomed into starts as the narrow column it was and grows, the other months folding away.
+	let grown = $state(false);
+	const wide = $derived(day != null && grown);
+	function openDay(d: number) {
+		day = d;
+		grown = false;
+		requestAnimationFrame(() => requestAnimationFrame(() => (grown = true)));
+	}
 	let fill = $state(0); // the height left on the screen, so the year fills it
 	const open = $derived(pinned ?? openMonth ?? hover);
 	const lines = $derived(yearLines(occs, y));
@@ -60,7 +69,7 @@
 	const strip = $derived(vw > 640 ? 16 : 8);
 	// Zoomed into a day, the other months are gone altogether.
 	const share = $derived(
-		pinned != null ? (day != null ? 1 : 1 - (11 * strip) / full) : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full
+		pinned != null ? (wide ? 1 : 1 - (11 * strip) / full) : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full
 	);
 	const spans = $derived(monthSpans(y, full, open, share));
 	const x = (doy: number) => yearX(spans, doy);
@@ -143,12 +152,18 @@
 	const dstrip = $derived(Math.min(8, (vw * 0.15) / 30));
 	function dayBox(i: number): { left: number; width: number } {
 		const sp = spans[pinned!];
-		if (day == null) return { left: sp.left + (i * sp.width) / sp.days, width: sp.width / sp.days };
-		const wide = sp.width - (sp.days - 1) * dstrip;
+		if (!wide || day == null) return { left: sp.left + (i * sp.width) / sp.days, width: sp.width / sp.days };
+		const big = sp.width - (sp.days - 1) * dstrip;
 		const k = day - 1;
 		if (i < k) return { left: sp.left + i * dstrip, width: dstrip };
-		if (i === k) return { left: sp.left + k * dstrip, width: wide };
-		return { left: sp.left + k * dstrip + wide + (i - k - 1) * dstrip, width: dstrip };
+		if (i === k) return { left: sp.left + k * dstrip, width: big };
+		return { left: sp.left + k * dstrip + big + (i - k - 1) * dstrip, width: dstrip };
+	}
+	/** Days of the month over the full width that have something on them: a dot on their thin strip. */
+	function busy(i: number): boolean {
+		if (pinned == null) return false;
+		const doy = spans[pinned].start + i;
+		return lines.items.some((it) => it.from <= doy && it.to >= doy);
 	}
 	function back() {
 		if (day != null) day = null;
@@ -203,19 +218,24 @@
 			{#each { length: sp.days } as _, i (i)}
 				{@const box = dayBox(i)}
 				{#if day === i + 1}
-					<div class="daylbl" style:left="{box.left}px" style:width="{box.width}px">{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} <b>{i + 1}</b></div>
+					<div class="daylbl" style:left="{box.left}px" style:width="{box.width}px">
+						<button class="stp" aria-label="Vorige dag" onclick={() => stepDay(-1)}><Icon name="back" /></button>
+						<span class="dn">{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} <b>{i + 1}</b></span>
+						<button class="stp" aria-label="Volgende dag" onclick={() => stepDay(1)}><Icon name="next" /></button>
+					</div>
 					<div class="dayv" style:left="{box.left}px" style:width="{box.width}px">
-						{#key day}<DayLine {y} m={sp.m} d={day} {occs} onback={() => (day = null)} onstep={stepDay} onopen={(o) => (onpick ? onpick(o) : openMoment(o))} />{/key}
+						{#key day}<DayLine {y} m={sp.m} d={day} {occs} onopen={(o) => (onpick ? onpick(o) : openMoment(o))} />{/key}
 					</div>
 				{:else}
 					<button
 						class="dayc"
 						class:we={[0, 6].includes(new Date(y, sp.m, i + 1).getDay())}
 						class:thin={box.width < 18}
+						class:busy={busy(i)}
 						style:left="{box.left}px"
 						style:width="{box.width}px"
 						aria-label="{i + 1} {MONTHS[sp.m]} bekijken"
-						onclick={() => (day = i + 1)}
+						onclick={() => openDay(i + 1)}
 					><span>{i + 1}</span></button>
 				{/if}
 			{/each}
@@ -264,12 +284,17 @@
 	/* In a month over the full width, each day is a column you can zoom into. */
 	.dayc { position: absolute; top: calc(var(--head) - 28px); bottom: 0; z-index: 1; padding: 0; border: none; border-radius: 0; background: transparent; font: inherit; color: color-mix(in srgb, var(--ink) 65%, transparent); cursor: zoom-in; transition: left var(--ease), width var(--ease), background-color 0.15s; }
 	.dayc.thin span { display: none; }
-	.dayc.thin { border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+	.dayc.thin { border-left: 1px solid color-mix(in srgb, var(--line) 35%, transparent); }
+	.dayc.thin.busy::after { content: ''; position: absolute; top: 13px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 70%, transparent); }
 	/* The day zoomed into, as wide as the month less a thin strip for each other day. */
 	/* Above the day zoomed into, its date stays in the bar, with the name of the day before it. */
-	.daylbl { position: absolute; top: calc(var(--head) - 28px); height: 28px; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 14px; color: var(--ink); pointer-events: none; transition: left var(--ease), width var(--ease); }
+	.daylbl { position: absolute; z-index: 4; top: calc(var(--head) - 30px); height: 30px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; transition: left var(--ease), width var(--ease); }
+	.daylbl .dn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+	.stp { flex: 0 0 auto; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: color-mix(in srgb, var(--bg) 55%, transparent); color: var(--ink); cursor: pointer; transition: background-color 0.15s; }
+	.stp :global(svg) { width: 14px; height: 14px; }
+	@media (hover: hover) { .stp:hover { background: var(--bg); } }
 	.daylbl b { font-weight: 800; font-variant-numeric: tabular-nums; }
-	.dayv { position: absolute; top: var(--head); bottom: 0; z-index: 3; transition: left var(--ease), width var(--ease); }
+	.dayv { position: absolute; top: var(--head); bottom: 0; z-index: 3; overflow: hidden; transition: left var(--ease), width var(--ease); }
 	.dayc span { position: absolute; top: 4px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.dayc.we span { color: var(--ink); }
 	@media (hover: hover) { .dayc:hover { background: var(--hover); } .dayc:hover span { color: var(--ink); } }
