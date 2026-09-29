@@ -50,6 +50,8 @@
 					<button class="ph" aria-label="{p.o.moment.title}, foto bekijken" onclick={() => (ui.gallery = { list: photos, i, canEdit: app.canEdit })}>
 						<Photo path={p.path} alt={p.o.moment.title} />
 					</button>
+				{:else}
+					<p class="nophoto">Nog geen foto's uit {y}.{app.canEdit ? ' Voeg ze toe bij een moment.' : ''}</p>
 				{/each}
 			</div>
 		</div>
@@ -76,6 +78,7 @@
 	/* The photos fill the rest of the upper half, in one row that scrolls sideways. */
 	.photos { flex: 1 1 0; min-width: 0; display: flex; gap: 10px; align-items: center; overflow-x: auto; overflow-y: hidden; padding-right: 3vw; scrollbar-width: none; }
 	.photos::-webkit-scrollbar { display: none; }
+	.nophoto { margin: 0; align-self: center; color: var(--muted); font-size: 15px; }
 	.ph { flex: 0 0 auto; height: 100%; max-height: 420px; aspect-ratio: 4 / 3; padding: 0; border: none; border-radius: 10px; overflow: hidden; background: var(--line); cursor: zoom-in; transition: filter 0.15s, transform 0.2s; }
 	.ph :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; }
 	@media (hover: hover) { .ph:hover { filter: var(--hover-filter); } }

@@ -6,7 +6,7 @@
 	import { onDestroy } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
 	import { MONTHS, WEEKDAYS } from '$lib/domain/dates';
-	import { dayMoments, sunHeight } from '$lib/domain/view';
+	import { dayMoments, spanOf, sunHeight } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import Icon from './Icon.svelte';
 	import Photo from './Photo.svelte';
@@ -33,16 +33,11 @@
 
 	/** Does a moment run on from the day before, or into the next? */
 	const n = (Y: number, M: number, D: number) => Y * 10000 + M * 100 + D;
+	const short = (t: { m: number; d: number }) => `${t.d} ${MONTHS[t.m].slice(0, 3)}`;
 	function edges(o: Occurrence) {
-		if (o.d == null || o.m == null) return { before: true, after: true, from: `1 ${MONTHS[o.m!].slice(0, 3)}`, to: '' };
+		const { from, to } = spanOf(o);
 		const here = n(y, m, d);
-		const end = o.end ? n(o.end.y, o.end.m, o.end.d) : n(o.y, o.m, o.d);
-		return {
-			before: n(o.y, o.m, o.d) < here,
-			after: end > here,
-			from: `${o.d} ${MONTHS[o.m].slice(0, 3)}`,
-			to: o.end ? `${o.end.d} ${MONTHS[o.end.m].slice(0, 3)}` : ''
-		};
+		return { before: n(from.y, from.m, from.d) < here, after: n(to.y, to.m, to.d) > here, from: short(from), to: short(to) };
 	}
 </script>
 

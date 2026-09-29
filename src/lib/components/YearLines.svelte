@@ -90,7 +90,8 @@
 			const days = Math.max(4, x(it.to + 1) - from - 2);
 			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? '600 12px' : '600 14px');
 			const text = (compact ? name : Math.max(name, textWidth(whenLabel(it.o), '12px') + 14)) + (compact ? 28 : 36);
-			const w = Math.min(Math.max(days, text), compact ? 220 : 280, full);
+			// As wide as its days, and at least as wide as its name (up to a limit): a whole year spans the year.
+			const w = Math.min(Math.max(days, Math.min(text, compact ? 220 : 280)), full);
 			const left = Math.max(0, Math.min(from, full - w));
 			return { it, shown, from, days, left, w };
 		});
@@ -159,11 +160,11 @@
 		if (i === k) return { left: sp.left + k * dstrip, width: big };
 		return { left: sp.left + k * dstrip + big + (i - k - 1) * dstrip, width: dstrip };
 	}
-	/** Days of the month over the full width that have something on them: a dot on their thin strip. */
+	/** Days of the month over the full width with something of their own on them (not a month or year long): a dot. */
 	function busy(i: number): boolean {
 		if (pinned == null) return false;
 		const doy = spans[pinned].start + i;
-		return lines.items.some((it) => it.from <= doy && it.to >= doy);
+		return lines.items.some((it) => it.from <= doy && it.to >= doy && it.to - it.from < 27);
 	}
 	function back() {
 		if (day != null) day = null;
@@ -269,15 +270,18 @@
 	/* A month is a column: a line on its left, on top a bar in the colour of its season, the only colour here. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
 	.col.open { background: repeating-linear-gradient(to right, transparent 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
-	.month { position: absolute; top: 0; height: var(--head); padding: 0; border: none; border-right: 1px solid color-mix(in srgb, var(--bg) 60%, transparent); border-radius: 0; background: color-mix(in srgb, var(--s) 55%, var(--bg));
-		font: inherit; color: var(--ink); cursor: pointer; overflow: hidden; transition: left var(--ease), width var(--ease), background-color 0.15s; }
-	.month .name { position: absolute; left: 0; right: 0; top: calc(50% - 10px); transition: top var(--ease); text-align: center; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+	/* The colour is only on the band with the month's name; the days below it have none. */
+	.wrap { --numrow: 28px; }
+	.wrap.compact { --numrow: 19px; }
+	.month { --bar: color-mix(in srgb, var(--s) 55%, var(--bg)); position: absolute; top: 0; height: var(--head); padding: 0; border: none; border-radius: 0;
+		background: linear-gradient(to bottom, var(--bar) 0 calc(100% - var(--numrow)), transparent calc(100% - var(--numrow)));
+		box-shadow: inset -1px 0 0 color-mix(in srgb, var(--bg) 60%, transparent), inset 0 -1px 0 var(--line);
+		font: inherit; color: var(--ink); cursor: pointer; overflow: hidden; transition: left var(--ease), width var(--ease); }
+	.month .name { position: absolute; left: 0; right: 0; top: calc((var(--head) - var(--numrow)) / 2 - 10px); text-align: center; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
 	.month.thin .name { display: none; }
-	.month.open .name { top: 10px; }
-	.compact .month .name, .compact .month.open .name { top: 6px; }
 	.month .name b { font-weight: 800; font-variant-numeric: tabular-nums; margin-right: 2px; }
-	.month.open { background: color-mix(in srgb, var(--s) 80%, var(--bg)); }
-	.nums { position: absolute; left: 0; right: 0; top: 38px; display: flex; animation: fade 0.3s both; }
+	.month.open { --bar: color-mix(in srgb, var(--s) 80%, var(--bg)); }
+	.nums { position: absolute; left: 0; right: 0; bottom: calc(var(--numrow) / 2 - 8px); display: flex; animation: fade 0.3s both; }
 	.nums span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--ink) 65%, transparent); font-variant-numeric: tabular-nums; }
 	.nums span.we { color: var(--ink); }
 	@keyframes fade { from { opacity: 0; } }
@@ -310,8 +314,8 @@
 	.block .l2 { font-size: 12px; line-height: 15px; color: var(--muted); }
 	.block .sq { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--muted); margin-right: 6px; vertical-align: 0; }
 	@media (hover: hover) {
-		.month:hover { background: color-mix(in srgb, var(--s) 70%, var(--bg)); }
-		.month.open:hover { background: color-mix(in srgb, var(--s) 80%, var(--bg)); }
+		.month:hover { --bar: color-mix(in srgb, var(--s) 70%, var(--bg)); }
+		.month.open:hover { --bar: color-mix(in srgb, var(--s) 80%, var(--bg)); }
 		.block:hover { filter: var(--hover-filter); z-index: 3; }
 	}
 	.block:focus-visible { z-index: 3; }
@@ -319,7 +323,6 @@
 	.compact .block { padding: 2px 10px 0; border-radius: 14px; }
 	.compact .block .l1 { font-size: 12px; line-height: 15px; }
 	.compact .month .name { font-size: 12px; }
-	.compact .nums { top: 25px; }
 	.focusing .block { opacity: 0.45; transition: left var(--ease), width var(--ease), top var(--ease), filter 0.15s, opacity 0.4s, box-shadow 0.4s; }
 	.focusing .block.on { opacity: 1; z-index: 3; box-shadow: 0 0 0 2px var(--ink), 0 6px 18px rgba(10, 20, 30, 0.18); }
 	@media (prefers-reduced-motion: reduce) {

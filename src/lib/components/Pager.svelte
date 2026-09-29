@@ -49,14 +49,16 @@
 		</section>
 	{/each}
 </main>
-<button class="nav prev" disabled={app.idx <= 0} aria-label={app.mode === 'year' ? 'Vorig jaar' : 'Vorige maand'} onclick={() => app.goTo(app.idx - 1)}><Icon name="back" /></button>
-<button class="nav next" disabled={app.idx >= app.pageCount - 1} aria-label={app.mode === 'year' ? 'Volgend jaar' : 'Volgende maand'} onclick={() => app.goTo(app.idx + 1)}><Icon name="next" /></button>
+<!-- Above the Jaarlijn, in the upper half, so the arrows do not cover the months. -->
+<button class="nav prev" class:high={app.mode === 'year' && app.yearView === 'lijn'} disabled={app.idx <= 0} aria-label={app.mode === 'year' ? 'Vorig jaar' : 'Vorige maand'} onclick={() => app.goTo(app.idx - 1)}><Icon name="back" /></button>
+<button class="nav next" class:high={app.mode === 'year' && app.yearView === 'lijn'} disabled={app.idx >= app.pageCount - 1} aria-label={app.mode === 'year' ? 'Volgend jaar' : 'Volgende maand'} onclick={() => app.goTo(app.idx + 1)}><Icon name="next" /></button>
 
 <style>
 	main { flex: 1 1 auto; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 	main::-webkit-scrollbar { display: none; }
 	section { flex: 0 0 100%; width: 100%; height: 100%; overflow-y: auto; scroll-snap-align: start; scroll-snap-stop: always; }
 	.nav { position: fixed; top: 55%; transform: translateY(-50%); z-index: 4; width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(10, 20, 30, 0.12); font-size: 20px; cursor: pointer; }
+	.nav.high { top: 30%; }
 	.prev { left: max(14px, env(safe-area-inset-left, 0px)); }
 	.next { right: max(14px, env(safe-area-inset-right, 0px)); }
 	.nav:disabled { opacity: 0; pointer-events: none; }

@@ -170,13 +170,13 @@ export interface YearLineItem {
 
 /**
  * The year as one line per day: every dated moment and period as a run of days, spread over
- * side-by-side lanes where they overlap. A month without a day covers the whole month; whole-year moments are left out.
+ * side-by-side lanes where they overlap. A month without a day covers the whole month, a year without a month the whole year.
  */
 export function yearLines(occs: Occurrence[], y: number): { days: number; items: YearLineItem[]; lanes: number } {
 	const days = Math.round((Date.UTC(y + 1, 0, 1) - Date.UTC(y, 0, 1)) / 86_400_000);
 	const spans = occs
-		.filter((o) => o.m != null)
 		.map((o) => {
+			if (o.m == null) return { o, from: 0, to: days - 1 };
 			const start = o.y < y ? 0 : dayOfYear(y, o.m!, o.d ?? 1);
 			let end: number;
 			if (o.end) end = o.end.y > y ? days - 1 : dayOfYear(y, o.end.m, o.end.d);
@@ -251,7 +251,14 @@ export function packRows(boxes: { left: number; right: number }[], gap = 0): { r
 /** How high the sun stands at `hour` (0–24), from 0 at midnight to 1 at noon: the arc over the day view. */
 export const sunHeight = (hour: number): number => (1 - Math.cos((2 * Math.PI * hour) / 24)) / 2;
 
-/** What is on one day: moments on or around it, and month-long ones that month. */
+/** What is on one day: moments on or around it, month-long ones that month, and year-long ones that year. */
 export function dayMoments(occs: Occurrence[], y: number, m: number, d: number): Occurrence[] {
-	return occs.filter((o) => covers(o, y, m, d) || (o.y === y && o.m === m && o.d == null && !o.end));
+	return occs.filter((o) => covers(o, y, m, d) || (o.y === y && o.d == null && !o.end && (o.m === m || o.m == null)));
+}
+
+/** The first and last day a moment covers: a year without a month is all of it, a month without a day all of that. */
+export function spanOf(o: Occurrence): { from: Day; to: Day } {
+	if (o.m == null) return { from: { y: o.y, m: 0, d: 1 }, to: { y: o.y, m: 11, d: 31 } };
+	if (o.d == null) return { from: { y: o.y, m: o.m, d: 1 }, to: { y: o.y, m: o.m, d: daysInMonth(o.y, o.m) } };
+	return { from: { y: o.y, m: o.m, d: o.d }, to: o.end ?? { y: o.y, m: o.m, d: o.d } };
 }

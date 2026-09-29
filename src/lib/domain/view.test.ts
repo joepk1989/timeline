@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { dayMoments, dayOfYear, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { dayMoments, dayOfYear, spanOf, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -80,9 +80,9 @@ describe('view helpers', () => {
 		const r = yearLines([fest, long, one, month, cross, whole], 2026);
 		expect(r.days).toBe(365);
 		expect(r.items.map((i) => [i.o.moment.id, i.from, i.to, i.lane])).toEqual([
-			['e', 0, 2, 0], ['c', 124, 124, 0], ['b', 162, 171, 0], ['a', 169, 171, 1], ['d', 243, 272, 0]
+			['f', 0, 364, 0], ['e', 0, 2, 1], ['c', 124, 124, 1], ['b', 162, 171, 1], ['a', 169, 171, 2], ['d', 243, 272, 1]
 		]);
-		expect(r.lanes).toBe(2);
+		expect(r.lanes).toBe(3);
 		expect(yearLines([], 2028).days).toBe(366);
 	});
 	it('places labels without overlap, as close to their spot as possible', () => {
@@ -131,7 +131,10 @@ describe('the day view', () => {
 			{ y: 2027, m: 6, d: 12, end: null },
 			{ y: 2027, m: null, d: null, end: null }
 		].map((o, i) => ({ ...o, moment: { id: String(i) } })) as unknown as Parameters<typeof dayMoments>[0];
-		expect(dayMoments(occs, 2027, 6, 9).map((o) => o.moment.id)).toEqual(['0', '1', '2']);
-		expect(dayMoments(occs, 2027, 7, 9)).toEqual([]);
+		expect(dayMoments(occs, 2027, 6, 9).map((o) => o.moment.id)).toEqual(['0', '1', '2', '4']);
+		expect(spanOf(occs[2])).toEqual({ from: { y: 2027, m: 6, d: 1 }, to: { y: 2027, m: 6, d: 31 } });
+		expect(spanOf(occs[4])).toEqual({ from: { y: 2027, m: 0, d: 1 }, to: { y: 2027, m: 11, d: 31 } });
+		expect(spanOf(occs[1])).toEqual({ from: { y: 2027, m: 6, d: 7 }, to: { y: 2027, m: 6, d: 10 } });
+		expect(dayMoments(occs, 2027, 7, 9).map((o) => o.moment.id)).toEqual(['4']); // the whole year
 	});
 });
