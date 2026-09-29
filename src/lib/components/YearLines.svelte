@@ -280,6 +280,66 @@
 		if (!o.moment.virtual) ui.editor = { id: o.moment.id, y: o.y, m: o.m, d: o.d };
 		else if (o.m != null && o.d != null) ui.day = { y, m: o.m, d: o.d };
 	}
+
+	/* ---------- the scroll wheel ---------- */
+	// Ctrl + wheel (or a pinch on a touchpad) zooms in and out around the mouse: all years, a year, a month,
+	// a day. Shift + wheel (or a sideways swipe inside a month or day) goes to the one before or after.
+	let root = $state<HTMLDivElement>();
+	let acc = 0;
+	let rest = 0;
+	function under(e: WheelEvent): number {
+		return wrapEl ? e.clientX - wrapEl.getBoundingClientRect().left : 0;
+	}
+	function zoom(dir: 1 | -1, e: WheelEvent) {
+		const px = under(e);
+		if (ui.allYears) {
+			if (dir > 0) {
+				const i = yearParts.findIndex((p) => px >= p.left && px < p.left + p.width);
+				if (i >= 0) pickYear(years[i].y);
+			}
+		} else if (pinned == null) {
+			if (dir < 0) ui.allYears = true;
+			else {
+				const sp = spans.find((s) => px >= s.left && px < s.left + s.width);
+				if (sp) pin(sp.m);
+			}
+		} else if (day == null) {
+			if (dir < 0) pin(null);
+			else if (dayParts) {
+				const rel = px - spans[pinned].left;
+				const i = dayParts.findIndex((p) => rel >= p.left && rel < p.left + p.width);
+				if (i >= 0) openDay(i + 1);
+			}
+		} else if (dir < 0) day = null;
+	}
+	function step(dir: 1 | -1) {
+		if (ui.allYears) return;
+		if (day != null) stepDay(dir);
+		else if (pinned != null) {
+			const m = pinned + dir;
+			if (m >= 0 && m <= 11) pin(m);
+		} else app.goTo(app.idx + dir);
+	}
+	function onwheel(e: WheelEvent) {
+		const sideways = e.shiftKey || (Math.abs(e.deltaX) > Math.abs(e.deltaY) && (pinned != null || ui.allYears));
+		if (!e.ctrlKey && !sideways) return;
+		e.preventDefault();
+		const now = performance.now();
+		if (now < rest) return;
+		acc += e.ctrlKey ? e.deltaY : e.deltaX || e.deltaY;
+		if (Math.abs(acc) < (e.ctrlKey ? 30 : 50)) return;
+		const dir = acc > 0 ? 1 : -1;
+		acc = 0;
+		rest = now + 380; // one step per gesture, however many events a touchpad sends
+		if (e.ctrlKey) zoom(dir > 0 ? -1 : 1, e);
+		else step(dir);
+	}
+	$effect(() => {
+		if (!root || compact) return;
+		// Not passive: Ctrl + wheel would otherwise zoom the whole page.
+		root.addEventListener('wheel', onwheel, { passive: false });
+		return () => root?.removeEventListener('wheel', onwheel);
+	});
 </script>
 
 <svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => {
@@ -288,6 +348,7 @@
 		else if (pinned != null) back();
 	}} />
 
+<div class="root" bind:this={root}>
 {#if !compact}
 	<!-- The years of the timeline, the same height as the months and days: click one to go there. -->
 	<div class="years" role="group" aria-label="Jaren" style:--numrow="{ROWH}px">
@@ -446,6 +507,7 @@
 	</div>
 </div>
 {/if}
+</div>
 
 <style>
 	/* All the years: a column each, the moments of all of them on top. */
@@ -456,6 +518,8 @@
 	.block.one .l1 { font-size: 13px; }
 	.yr.all { cursor: zoom-in; }
 	.yr.pointed { background: var(--hover); color: var(--ink); }
+	/* A real box, not display: contents: the browser only sends the wheel to elements with a box. */
+	.root { display: block; }
 	.years { display: flex; height: var(--numrow); border-bottom: 1px solid var(--line); overflow: hidden; }
 	.yr { position: relative; flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 2px; border: none; border-right: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
 		background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color 0.15s, color 0.15s; }
