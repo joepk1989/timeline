@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { dayOfYear, monthSpans, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { dayOfYear, monthSpans, packRows, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -104,5 +104,14 @@ describe('monthSpans', () => {
 		expect(open[0].width / open[1].width).toBeCloseTo(31 / 28);
 		expect(yearX(open, open[6].start + 15.5)).toBeCloseTo(open[6].left + 200);
 		expect(monthSpans(2028, 366)[1].days).toBe(29);
+	});
+});
+
+describe('packRows', () => {
+	it('puts boxes on the first free row, keeping a gap, in the order given', () => {
+		const { rows, count } = packRows([{ left: 100, right: 200 }, { left: 0, right: 150 }, { left: 195, right: 300 }, { left: 160, right: 190 }], 8);
+		expect(rows).toEqual([1, 0, 2, 0]); // 195 is too close to 190 on row 0, and to 200 on row 1
+		expect(count).toBe(3);
+		expect(packRows([]).count).toBe(0);
 	});
 });

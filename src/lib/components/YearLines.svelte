@@ -1,78 +1,80 @@
 <script lang="ts">
-	// The year as 365 thin lines side by side, one per day, on one row. Moments colour their days in a
-	// lane of their own; the name stands upright right beside them. Point at a month and it opens up to a
-	// third of the line, with its days numbered; click or tap it and it takes the full width, the other
-	// months left as thin strips to jump to. Too narrow for a whole year? It scrolls.
+	// The Jaarlijn: the year from edge to edge, the months as columns, each moment a block lying on its
+	// days with its icon and name, and its dates below. Blocks that would touch go on a row of their own.
+	// Point at a month and it opens up to a third of the width, with its days numbered; click or tap it
+	// and it takes the full width, the other months left as thin strips to jump to.
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { MONTHS, MONTHS_SHORT, season } from '$lib/domain/dates';
+	import { MONTHS, season } from '$lib/domain/dates';
 	import { whenLabel } from '$lib/domain/occurrences';
-	import { dayOfYear, monthSpans, placeLabels, yearLines, yearX } from '$lib/domain/view';
+	import { dayOfYear, monthSpans, packRows, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 
 	let { y, occs }: { y: number; occs: Occurrence[] } = $props();
 
-	const LANE = 20; // px per lane
-	const SEG = 14; // px a moment is high
-	const LABEL = 44; // px per upright name: two lines, the name and its dates
-	const TOP = 50; // month names and, for an open month, its day numbers
-	const GAP = 28; // room for the joining lines
+	const HEAD = 52; // month names and, for an open month, its day numbers
+	const ROW = 50; // px per row of blocks
+	const BLOCK = 42; // px a block is high
+	const GAP = 6; // px between blocks on a row
 
-	// The line breaks out of the page column to the full width of the screen.
 	let vw = $state(0);
 	let vh = $state(0);
 	let wrapEl = $state<HTMLDivElement>();
-	// The names get the height that is left on the screen, so the year and its line fill it exactly.
-	let names = $state(380);
-	let grow = $state(0); // extra height for the line itself, on a tall screen
 	let scroller = $state<HTMLDivElement>();
 	let hover = $state<number | null>(null);
 	let pinned = $state<number | null>(null);
+	let fill = $state(0); // the height left on the screen, so the year fills it
 	const open = $derived(pinned ?? hover);
-	const width = $derived(vw);
 	const lines = $derived(yearLines(occs, y));
-	// Wide enough for every name side by side, and at least 2px a day.
-	const full = $derived(pinned != null ? width : Math.max(width, (lines.days || 365) * 2, lines.items.length * LABEL * 1.5));
-	// A pinned month takes the width but for a thin strip per other month. A month pointed at gets a
-	// third of the line, more on a narrow screen, but always fits on the screen.
+	// On a phone the year scrolls sideways: a month is at least 110px wide.
+	const full = $derived(pinned != null ? vw : Math.max(vw, 12 * 110));
 	const strip = $derived(vw > 640 ? 16 : 8);
-	const share = $derived(pinned != null ? 1 - (11 * strip) / full : Math.max(0.35 * full, Math.min(31 * 16, width * 0.9)) / full);
+	const share = $derived(pinned != null ? 1 - (11 * strip) / full : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full);
 	const spans = $derived(monthSpans(y, full, open, share));
 	const x = (doy: number) => yearX(spans, doy);
-	const baseRuler = $derived(Math.max(80, lines.lanes * LANE + 16));
-	const ruler = $derived(baseRuler + grow);
-	const labelsY = $derived(TOP + ruler + GAP);
-	const mid = (it: { from: number; to: number }) => (x(it.from) + x(it.to + 1)) / 2;
-	// With a month pinned, only what touches that month keeps its name.
-	const named = $derived(
-		lines.items.map((it) => pinned == null || (it.to >= spans[pinned].start && it.from < spans[pinned].start + spans[pinned].days))
-	);
-	const lefts = $derived.by(() => {
-		const idx = lines.items.flatMap((_, i) => (named[i] ? [i] : []));
-		const placed = placeLabels(idx.map((i) => mid(lines.items[i]) - LABEL / 2), LABEL, full);
-		const out: number[] = [];
-		idx.forEach((i, k) => (out[i] = placed[k]));
-		return out;
-	});
-	const todayDoy = $derived(app.now.y === y ? dayOfYear(y, app.now.m, app.now.d) : null);
-	let hot = $state<string | null>(null);
 
+	// How wide a block's text is, so a festival of a few days still shows its whole name.
+	let ctx: CanvasRenderingContext2D | null = null;
+	function textWidth(text: string, font: string): number {
+		if (typeof document === 'undefined') return text.length * 8;
+		ctx ??= document.createElement('canvas').getContext('2d');
+		if (!ctx) return text.length * 8;
+		ctx.font = `${font} ${getComputedStyle(document.body).fontFamily}`;
+		return ctx.measureText(text).width;
+	}
+	const blocks = $derived.by(() => {
+		const all = lines.items.map((it) => {
+			const shown = pinned == null || (it.to >= spans[pinned].start && it.from < spans[pinned].start + spans[pinned].days);
+			const from = x(it.from);
+			const days = Math.max(4, x(it.to + 1) - from - 2);
+			const text = Math.max(textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, '600 14px'), textWidth(whenLabel(it.o), '12px') + 14) + 36;
+			const w = Math.min(Math.max(days, text), 280, full);
+			const left = Math.max(0, Math.min(from, full - w));
+			return { it, shown, from, days, left, w };
+		});
+		const shown = all.filter((b) => b.shown);
+		const { rows, count } = packRows(shown.map((b) => ({ left: b.left, right: b.left + b.w })), GAP);
+		const row = new Map(shown.map((b, i) => [b, rows[i]]));
+		return { list: all.map((b) => ({ ...b, row: row.get(b) ?? 0 })), rows: count };
+	});
+	const height = $derived(Math.max(fill, HEAD + 12 + Math.max(3, blocks.rows) * ROW + 12));
+	const todayDoy = $derived(app.now.y === y ? dayOfYear(y, app.now.m, app.now.d) : null);
+
+	// Fill the screen below the line's top edge.
 	$effect(() => {
 		void [vh, vw];
 		const section = wrapEl?.closest('section');
 		if (!wrapEl || !section) return;
 		const top = wrapEl.getBoundingClientRect().top - section.getBoundingClientRect().top + section.scrollTop;
-		const left = section.clientHeight - top - (TOP + baseRuler + GAP) - 20;
-		names = Math.round(Math.min(460, Math.max(vw > 640 ? 200 : 240, left)));
-		grow = Math.round(Math.min(160, Math.max(0, left - names)));
+		fill = Math.round(Math.max(260, section.clientHeight - top - 16));
 	});
 
 	// On a narrow screen, start at today.
 	$effect(() => {
-		if (scroller && todayDoy != null && pinned == null && full > width) scroller.scrollLeft = yearX(monthSpans(y, full), todayDoy + 0.5) - vw / 2;
+		if (scroller && todayDoy != null && pinned == null && full > vw) scroller.scrollLeft = yearX(monthSpans(y, full), todayDoy + 0.5) - vw / 2;
 	});
 
-	// Pointing opens a month after a short pause, so sweeping across the line stays calm.
+	// Pointing opens a month after a short pause, so sweeping across the months stays calm.
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	function point(m: number | null, e: PointerEvent) {
 		if (e.pointerType !== 'mouse' || pinned != null) return;
@@ -95,121 +97,94 @@
 
 <svelte:window bind:innerWidth={vw} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
 
-<div class="scroll" bind:this={scroller} style:--names="{names}px">
-		<div
-			bind:this={wrapEl}
-			class="wrap"
-			style:width="{full}px"
-			style:--top="{TOP}px"
-			style:--ruler="{ruler}px"
-			style:--labels="{labelsY}px"
-			role="group"
-			aria-label="Het jaar {y} in lijnen, één per dag"
-			onpointerleave={(e) => point(null, e)}
-		>
-			{#each spans as sp (sp.m)}
-				<button
-					class="month"
-					class:open={open === sp.m}
-					class:thin={sp.width < 30}
-					style:left="{sp.left}px"
-					style:width="{sp.width}px"
-					style:--s="var(--{season(sp.m)})"
-					style:--day="{sp.width / sp.days}px"
-					aria-expanded={pinned === sp.m}
-					aria-label={pinned === sp.m ? `${MONTHS[sp.m]}, terug naar het hele jaar` : `${MONTHS[sp.m]} over de hele breedte`}
-					onpointerenter={(e) => point(sp.m, e)}
-					onclick={() => pin(pinned === sp.m ? null : sp.m)}
-				>
-					<span class="name">{MONTHS_SHORT[sp.m]}</span>
-					{#if open === sp.m}
-						<span class="nums" aria-hidden="true">
-							{#each { length: sp.days } as _, d (d)}<span class:we={[0, 6].includes(new Date(y, sp.m, d + 1).getDay())}>{sp.width / sp.days >= 15 || d % 2 === 0 ? d + 1 : ''}</span>{/each}
-						</span>
-					{/if}
-					<span class="ruler" aria-hidden="true"></span>
-				</button>
-			{/each}
-			{#if todayDoy != null}<div class="today" style:left="{x(todayDoy + 0.5)}px" aria-hidden="true"></div>{/if}
-
-			<svg class="links" width={full} height={labelsY} aria-hidden="true">
-				{#each lines.items as it, i (it.o.moment.id + i)}
-					{#if named[i]}
-					{@const x1 = mid(it)}
-					{@const y1 = TOP + 8 + it.lane * LANE + SEG}
-					{@const x2 = lefts[i] + LABEL / 2}
-					<path style:d="path('M{x1} {y1} V{TOP + ruler + 6} L{x2} {labelsY - 6} V{labelsY - 2}')" class:hot={hot === it.o.moment.id} style:--c={color(it.o)} />
-					{/if}
-				{/each}
-			</svg>
-
-			{#each lines.items as it, i (it.o.moment.id + i)}
-				<div
-					class="seg"
-					class:hot={hot === it.o.moment.id}
-					style:left="{x(it.from)}px"
-					style:width="{Math.max(2, x(it.to + 1) - x(it.from) - 1)}px"
-					style:top="{TOP + 8 + it.lane * LANE}px"
-					style:--c={color(it.o)}
-					aria-hidden="true"
-				></div>
-				{#if named[i]}
-				<button
-					class="label"
-					class:hot={hot === it.o.moment.id}
-					style:left="{lefts[i]}px"
-					style:--c={color(it.o)}
-					onpointerenter={() => (hot = it.o.moment.id)}
-					onpointerleave={() => (hot = null)}
-					onfocus={() => (hot = it.o.moment.id)}
-					onblur={() => (hot = null)}
-					onclick={() => openMoment(it.o)}
-				>
-					<span class="l1"><span class="e">{it.o.moment.emoji}</span><span class="t">{it.o.moment.title}</span></span><span class="d">{whenLabel(it.o)}</span>
-				</button>
+<div class="scroll" bind:this={scroller}>
+	<div
+		bind:this={wrapEl}
+		class="wrap"
+		style:width="{full}px"
+		style:height="{height}px"
+		style:--head="{HEAD}px"
+		role="group"
+		aria-label="Het jaar {y}, maand voor maand"
+		onpointerleave={(e) => point(null, e)}
+	>
+		{#each spans as sp (sp.m)}
+			<div class="col" class:open={open === sp.m} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
+			<button
+				class="month"
+				class:open={open === sp.m}
+				class:thin={sp.width < 44}
+				style:left="{sp.left}px"
+				style:width="{sp.width}px"
+				style:--s="var(--{season(sp.m)})"
+				aria-expanded={pinned === sp.m}
+				aria-label={pinned === sp.m ? `${MONTHS[sp.m]}, terug naar het hele jaar` : `${MONTHS[sp.m]} over de hele breedte`}
+				onpointerenter={(e) => point(sp.m, e)}
+				onclick={() => pin(pinned === sp.m ? null : sp.m)}
+			>
+				<span class="name">{MONTHS[sp.m]}</span>
+				{#if open === sp.m}
+					<span class="nums" aria-hidden="true">
+						{#each { length: sp.days } as _, d (d)}<span class:we={[0, 6].includes(new Date(y, sp.m, d + 1).getDay())}>{sp.width / sp.days >= 15 || d % 2 === 0 ? d + 1 : ''}</span>{/each}
+					</span>
 				{/if}
-			{/each}
-		</div>
+			</button>
+		{/each}
+		{#if todayDoy != null}<div class="today" style:left="{x(todayDoy + 0.5)}px" aria-hidden="true"></div>{/if}
+
+		{#each blocks.list as b, i (b.it.o.moment.id + i)}
+			{#if b.shown}
+				<button
+					class="block"
+					style:left="{b.left}px"
+					style:width="{b.w}px"
+					style:top="{HEAD + 12 + b.row * ROW}px"
+					style:height="{BLOCK}px"
+					style:--c={color(b.it.o)}
+					onclick={() => openMoment(b.it.o)}
+				>
+					<span class="days" style:left="{b.from - b.left}px" style:width="{b.days}px" aria-hidden="true"></span>
+					<span class="l1"><span class="e">{b.it.o.moment.emoji}</span> <span class="t">{b.it.o.moment.title}</span></span>
+					<span class="l2"><span class="sq" aria-hidden="true"></span>{whenLabel(b.it.o)}</span>
+				</button>
+			{/if}
+		{/each}
 	</div>
+</div>
 
 <style>
-	.scroll { overflow-x: auto; overflow-y: hidden; margin: 4px calc(50% - 50vw) 24px; scrollbar-width: thin; }
-	.wrap { position: relative; height: calc(var(--labels) + var(--names)); --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
-	/* A month: its name on top, then its days as thin lines (a repeating background). */
-	.month { position: absolute; top: 0; height: calc(var(--top) + var(--ruler) + 6px); padding: 0; border: none; border-left: 1px solid color-mix(in srgb, var(--s) 70%, transparent);
-		border-radius: 0; background: transparent; font: inherit; color: var(--muted); cursor: pointer; text-align: left; transition: left var(--ease), width var(--ease), background-color 0.15s; }
-	.month .name { position: absolute; left: 6px; top: 4px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+	/* Breaks out of the page column to the full width of the screen. */
+	.scroll { overflow-x: auto; overflow-y: hidden; margin: 4px calc(50% - 50vw) 16px; scrollbar-width: thin; }
+	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
+	/* A month is a column: a line on its left, a header with its name on a season-coloured edge. */
+	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
+	.col.open { background: repeating-linear-gradient(to right, color-mix(in srgb, var(--s) 10%, transparent) 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
+	.month { position: absolute; top: 0; height: var(--head); padding: 0; border: none; border-top: 3px solid var(--s); border-radius: 0; background: color-mix(in srgb, var(--line) 45%, transparent);
+		font: inherit; color: var(--ink); cursor: pointer; overflow: hidden; transition: left var(--ease), width var(--ease), background-color 0.15s; }
+	.month .name { position: absolute; left: 0; right: 0; top: 7px; text-align: center; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
 	.month.thin .name { display: none; }
-	.month.open { background: color-mix(in srgb, var(--s) 22%, transparent); color: var(--ink); }
-	.month .ruler { position: absolute; top: var(--top); left: 0; right: 0; height: var(--ruler);
-		background: repeating-linear-gradient(to right, var(--line) 0 calc(var(--day) - 1px), transparent calc(var(--day) - 1px) var(--day)); }
-	.month.open .ruler { background: repeating-linear-gradient(to right, color-mix(in srgb, var(--s) 45%, var(--line)) 0 calc(var(--day) - 2px), transparent calc(var(--day) - 2px) var(--day)); }
-	.nums { position: absolute; left: 0; right: 0; top: 27px; display: flex; animation: fade 0.3s both; }
-	.nums span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+	.month.open { background: color-mix(in srgb, var(--s) 28%, transparent); }
+	.nums { position: absolute; left: 0; right: 0; top: 29px; display: flex; animation: fade 0.3s both; }
+	.nums span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 	.nums span.we { color: var(--ink); }
 	@keyframes fade { from { opacity: 0; } }
+	.today { position: absolute; top: var(--head); bottom: 0; width: 0; border-left: 2px solid var(--accent); margin-left: -1px; z-index: 1; pointer-events: none; transition: left var(--ease); }
+	/* A moment: a block lying on its days, the days themselves marked along its top. */
+	.block { position: absolute; z-index: 2; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 4px 12px 0 12px; border: none; border-radius: 21px;
+		background: color-mix(in srgb, var(--c) 16%, var(--surface)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent) inset; font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+		overflow: hidden; transition: left var(--ease), width var(--ease), top var(--ease), filter 0.15s; }
+	.block .days { position: absolute; top: 0; height: 4px; border-radius: 0 0 3px 3px; background: var(--c); transition: left var(--ease), width var(--ease); }
+	.block .l1, .block .l2 { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.block .l1 { font-size: 14px; line-height: 18px; }
+	.block .t { font-weight: 700; }
+	.block .l2 { font-size: 12px; line-height: 15px; color: var(--muted); }
+	.block .sq { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--c); margin-right: 6px; vertical-align: 0; }
 	@media (hover: hover) {
 		.month:hover { background: var(--hover); }
-		.month.open:hover { background: color-mix(in srgb, var(--s) 22%, transparent); }
-		.label:hover { background: var(--hover); }
+		.month.open:hover { background: color-mix(in srgb, var(--s) 28%, transparent); }
+		.block:hover { filter: var(--hover-filter); z-index: 3; }
 	}
-	.today { position: absolute; top: calc(var(--top) - 4px); height: calc(var(--ruler) + 8px); width: 0; border-left: 2px solid var(--accent); margin-left: -1px; z-index: 3; pointer-events: none; transition: left var(--ease); }
-	.seg { position: absolute; height: 14px; border-radius: 5px; background: var(--c); z-index: 2; pointer-events: none; transition: left var(--ease), width var(--ease), box-shadow 0.15s; }
-	.seg.hot { box-shadow: 0 0 0 2px var(--ink); }
-	.links { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; z-index: 1; }
-	.links path { fill: none; stroke: color-mix(in srgb, var(--c) 60%, var(--line)); stroke-width: 1; transition: d var(--ease), stroke 0.15s; }
-	.links path.hot { stroke: var(--ink); stroke-width: 1.5; }
-	/* The label stands upright, reading top to bottom, right beside its line. */
-	.label { position: absolute; top: var(--labels); width: 44px; max-height: var(--names); writing-mode: vertical-rl; display: block; padding: 14px 3px 10px; text-align: start;
-		border: none; border-radius: 6px; background: transparent; font: inherit; color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; z-index: 2; transition: left var(--ease), background-color 0.15s; }
-	/* Two lines, read top to bottom: the icon and name, then the dates under the name. */
-	.label .l1, .label .d { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.label .l1 { font-size: 17px; line-height: 22px; }
-	.label .e { margin-inline-end: 5px; }
-	.label .t { font-weight: 600; }
-	.label .d { font-size: 14px; line-height: 17px; color: var(--muted); padding-inline-start: 27px; }
-	.label::before { content: ''; position: absolute; top: 0; left: 8px; right: 8px; height: 5px; border-radius: 2px; background: var(--c); }
-	.label.hot { background: var(--hover); }
+	.block:focus-visible { z-index: 3; }
 	@media (prefers-reduced-motion: reduce) {
 		.wrap { --ease: 0s linear; }
 		.nums { animation: none; }

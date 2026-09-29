@@ -231,3 +231,19 @@ export function yearX(spans: MonthSpan[], doy: number): number {
 	const s = spans.find((s) => doy < s.start + s.days) ?? spans[spans.length - 1];
 	return s.left + ((Math.min(doy, s.start + s.days) - s.start) * s.width) / s.days;
 }
+
+/** Stacks boxes on rows so none overlap (with `gap` between them): the first row that is free at a box's left edge. */
+export function packRows(boxes: { left: number; right: number }[], gap = 0): { rows: number[]; count: number } {
+	const ends: number[] = [];
+	const rows = new Array<number>(boxes.length);
+	boxes
+		.map((b, i) => ({ ...b, i }))
+		.sort((a, b) => a.left - b.left || b.right - a.right)
+		.forEach((b) => {
+			let r = ends.findIndex((e) => e + gap <= b.left);
+			if (r < 0) r = ends.length;
+			ends[r] = b.right;
+			rows[b.i] = r;
+		});
+	return { rows, count: ends.length };
+}
