@@ -38,7 +38,7 @@
 		half?: boolean;
 	} = $props();
 
-	const HEAD = $derived(compact ? 44 : 52); // month names and, for an open month, its day numbers
+	const HEAD = $derived(compact ? 44 : 64); // month numbers and names and, for an open month, its day numbers
 	const GAP = 6; // px between blocks on a row
 
 	let win = $state(0);
@@ -50,13 +50,18 @@
 	let scroller = $state<HTMLDivElement>();
 	let hover = $state<number | null>(null);
 	let pinned = $state<number | null>(null);
+	// In a month over the full width, a click on a day zooms in once more, onto that day.
+	let day = $state<number | null>(null);
 	let fill = $state(0); // the height left on the screen, so the year fills it
 	const open = $derived(pinned ?? openMonth ?? hover);
 	const lines = $derived(yearLines(occs, y));
 	// On a phone the year scrolls sideways: a month is at least 110px wide.
 	const full = $derived(pinned != null ? vw : Math.max(vw, 12 * 110));
 	const strip = $derived(vw > 640 ? 16 : 8);
-	const share = $derived(pinned != null ? 1 - (11 * strip) / full : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full);
+	// Zoomed into a day, the other months are gone altogether.
+	const share = $derived(
+		pinned != null ? (day != null ? 1 : 1 - (11 * strip) / full) : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full
+	);
 	const spans = $derived(monthSpans(y, full, open, share));
 	const x = (doy: number) => yearX(spans, doy);
 
@@ -71,7 +76,7 @@
 	}
 	const blocks = $derived.by(() => {
 		const all = lines.items.map((it) => {
-			const shown = pinned == null || (it.to >= spans[pinned].start && it.from < spans[pinned].start + spans[pinned].days);
+			const shown = day == null && (pinned == null || (it.to >= spans[pinned].start && it.from < spans[pinned].start + spans[pinned].days));
 			const from = x(it.from);
 			const days = Math.max(4, x(it.to + 1) - from - 2);
 			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? '600 12px' : '600 14px');
@@ -126,8 +131,6 @@
 		day = null;
 		scroller?.scrollTo({ left: 0 });
 	}
-	// In a month over the full width, a click on a day zooms in once more, onto that day.
-	let day = $state<number | null>(null);
 	function stepDay(delta: number) {
 		if (pinned == null || day == null) return;
 		const t = new Date(y, pinned, day + delta);
@@ -135,12 +138,23 @@
 		pinned = t.getMonth();
 		day = t.getDate();
 	}
+	/** Where a day of the month over the full width sits: all alike, or the one zoomed into wide and the rest thin. */
+	// Together the thin days take at most 15% of the width, so the day itself stays wide, also on a phone.
+	const dstrip = $derived(Math.min(8, (vw * 0.15) / 30));
+	function dayBox(i: number): { left: number; width: number } {
+		const sp = spans[pinned!];
+		if (day == null) return { left: sp.left + (i * sp.width) / sp.days, width: sp.width / sp.days };
+		const wide = sp.width - (sp.days - 1) * dstrip;
+		const k = day - 1;
+		if (i < k) return { left: sp.left + i * dstrip, width: dstrip };
+		if (i === k) return { left: sp.left + k * dstrip, width: wide };
+		return { left: sp.left + k * dstrip + wide + (i - k - 1) * dstrip, width: dstrip };
+	}
 	function back() {
 		if (day != null) day = null;
 		else pin(null);
 	}
 
-	const color = (o: Occurrence) => (o.moment.virtual ? 'var(--accent)' : app.catOf(o.moment.categoryId).color);
 	function openMoment(o: Occurrence) {
 		if (!o.moment.virtual) ui.editor = { id: o.moment.id, y: o.y, m: o.m, d: o.d };
 		else if (o.m != null && o.d != null) ui.day = { y, m: o.m, d: o.d };
@@ -162,9 +176,6 @@
 		aria-label="Het jaar {y}, maand voor maand"
 		onpointerleave={(e) => point(null, e)}
 	>
-		{#if pinned != null && day != null}
-			<DayLine {y} m={pinned} d={day} {occs} onback={() => (day = null)} onstep={stepDay} onopen={(o) => (onpick ? onpick(o) : openMoment(o))} />
-		{:else}
 		{#each spans as sp (sp.m)}
 			<div class="col" class:open={open === sp.m} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
 			<button
@@ -175,11 +186,11 @@
 				style:width="{sp.width}px"
 				style:--s="var(--{season(sp.m)})"
 				aria-expanded={pinned === sp.m}
-				aria-label={pinned === sp.m ? `${MONTHS[sp.m]}, terug naar het hele jaar` : `${MONTHS[sp.m]} over de hele breedte`}
+				aria-label={pinned === sp.m ? (day != null ? `Terug naar heel ${MONTHS[sp.m]}` : `${MONTHS[sp.m]}, terug naar het hele jaar`) : `${MONTHS[sp.m]} over de hele breedte`}
 				onpointerenter={(e) => point(sp.m, e)}
-				onclick={() => pin(pinned === sp.m ? null : sp.m)}
+				onclick={() => (pinned === sp.m && day != null ? (day = null) : pin(pinned === sp.m ? null : sp.m))}
 			>
-				<span class="name">{MONTHS[sp.m]}</span>
+				<span class="name"><b>{String(sp.m + 1).padStart(2, '0')}</b> {MONTHS[sp.m]}</span>
 				{#if open === sp.m && pinned !== sp.m}
 					<span class="nums" aria-hidden="true">
 						{#each { length: sp.days } as _, d (d)}<span class:we={[0, 6].includes(new Date(y, sp.m, d + 1).getDay())}>{sp.width / sp.days >= 15 || d % 2 === 0 ? d + 1 : ''}</span>{/each}
@@ -190,17 +201,25 @@
 		{#if pinned != null && !compact}
 			{@const sp = spans[pinned]}
 			{#each { length: sp.days } as _, i (i)}
-				<button
-					class="dayc"
-					class:we={[0, 6].includes(new Date(y, sp.m, i + 1).getDay())}
-					style:left="{sp.left + (i * sp.width) / sp.days}px"
-					style:width="{sp.width / sp.days}px"
-					aria-label="{i + 1} {MONTHS[sp.m]} bekijken"
-					onclick={() => (day = i + 1)}
-				><span>{i + 1}</span></button>
+				{@const box = dayBox(i)}
+				{#if day === i + 1}
+					<div class="dayv" style:left="{box.left}px" style:width="{box.width}px">
+						{#key day}<DayLine {y} m={sp.m} d={day} {occs} onback={() => (day = null)} onstep={stepDay} onopen={(o) => (onpick ? onpick(o) : openMoment(o))} />{/key}
+					</div>
+				{:else}
+					<button
+						class="dayc"
+						class:we={[0, 6].includes(new Date(y, sp.m, i + 1).getDay())}
+						class:thin={box.width < 18}
+						style:left="{box.left}px"
+						style:width="{box.width}px"
+						aria-label="{i + 1} {MONTHS[sp.m]} bekijken"
+						onclick={() => (day = i + 1)}
+					><span>{i + 1}</span></button>
+				{/if}
 			{/each}
 		{/if}
-		{#if todayDoy != null}<div class="today" style:left="{x(todayDoy + 0.5)}px" aria-hidden="true"></div>{/if}
+		{#if todayDoy != null && day == null}<div class="today" style:left="{x(todayDoy + 0.5)}px" aria-hidden="true"></div>{/if}
 
 		{#each blocks.list as b, i (b.it.o.moment.id + i)}
 			{#if b.shown}
@@ -212,7 +231,6 @@
 					style:width="{b.w}px"
 					style:top="{HEAD + 10 + b.row * ROW}px"
 					style:height="{BLOCK}px"
-					style:--c={color(b.it.o)}
 					onclick={() => (onpick ? onpick(b.it.o) : openMoment(b.it.o))}
 				>
 					<span class="days" style:left="{b.from - b.left}px" style:width="{b.days}px" aria-hidden="true"></span>
@@ -221,54 +239,60 @@
 				</button>
 			{/if}
 		{/each}
-		{/if}
 	</div>
 </div>
 
 <style>
 	.scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
-	/* A month is a column: a line on its left, a header with its name on a season-coloured edge. */
+	/* A month is a column: a line on its left, on top a bar in the colour of its season, the only colour here. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
-	.col.open { background: repeating-linear-gradient(to right, color-mix(in srgb, var(--s) 10%, transparent) 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
-	.month { position: absolute; top: 0; height: var(--head); padding: 0; border: none; border-top: 3px solid var(--s); border-radius: 0; background: color-mix(in srgb, var(--line) 45%, transparent);
+	.col.open { background: repeating-linear-gradient(to right, transparent 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
+	.month { position: absolute; top: 0; height: var(--head); padding: 0; border: none; border-right: 1px solid color-mix(in srgb, var(--bg) 60%, transparent); border-radius: 0; background: color-mix(in srgb, var(--s) 55%, var(--bg));
 		font: inherit; color: var(--ink); cursor: pointer; overflow: hidden; transition: left var(--ease), width var(--ease), background-color 0.15s; }
-	.month .name { position: absolute; left: 0; right: 0; top: 7px; text-align: center; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+	.month .name { position: absolute; left: 0; right: 0; top: calc(50% - 10px); transition: top var(--ease); text-align: center; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
 	.month.thin .name { display: none; }
-	.month.open { background: color-mix(in srgb, var(--s) 28%, transparent); }
-	.nums { position: absolute; left: 0; right: 0; top: 29px; display: flex; animation: fade 0.3s both; }
-	.nums span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+	.month.open .name { top: 10px; }
+	.compact .month .name, .compact .month.open .name { top: 6px; }
+	.month .name b { font-weight: 800; font-variant-numeric: tabular-nums; margin-right: 2px; }
+	.month.open { background: color-mix(in srgb, var(--s) 80%, var(--bg)); }
+	.nums { position: absolute; left: 0; right: 0; top: 38px; display: flex; animation: fade 0.3s both; }
+	.nums span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--ink) 65%, transparent); font-variant-numeric: tabular-nums; }
 	.nums span.we { color: var(--ink); }
 	@keyframes fade { from { opacity: 0; } }
 	/* In a month over the full width, each day is a column you can zoom into. */
-	.dayc { position: absolute; top: 26px; bottom: 0; z-index: 1; padding: 0; border: none; border-radius: 0; background: transparent; font: inherit; color: var(--muted); cursor: zoom-in; transition: background-color 0.15s; }
-	.dayc span { position: absolute; top: 2px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.dayc { position: absolute; top: calc(var(--head) - 28px); bottom: 0; z-index: 1; padding: 0; border: none; border-radius: 0; background: transparent; font: inherit; color: color-mix(in srgb, var(--ink) 65%, transparent); cursor: zoom-in; transition: left var(--ease), width var(--ease), background-color 0.15s; }
+	.dayc.thin span { display: none; }
+	.dayc.thin { border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+	/* The day zoomed into, as wide as the month less a thin strip for each other day. */
+	.dayv { position: absolute; top: var(--head); bottom: 0; z-index: 3; transition: left var(--ease), width var(--ease); }
+	.dayc span { position: absolute; top: 4px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.dayc.we span { color: var(--ink); }
 	@media (hover: hover) { .dayc:hover { background: var(--hover); } .dayc:hover span { color: var(--ink); } }
-	.today { position: absolute; top: var(--head); bottom: 0; width: 0; border-left: 2px solid var(--accent); margin-left: -1px; z-index: 1; pointer-events: none; transition: left var(--ease); }
+	.today { position: absolute; top: var(--head); bottom: 0; width: 0; border-left: 2px solid var(--ink); margin-left: -1px; z-index: 1; pointer-events: none; transition: left var(--ease); }
 	/* A moment: a block lying on its days, the days themselves marked along its top. */
 	.block { position: absolute; z-index: 2; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 4px 12px 0 12px; border: none; border-radius: 21px;
-		background: color-mix(in srgb, var(--c) 16%, var(--surface)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent) inset; font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+		background: var(--surface); box-shadow: 0 0 0 1px var(--line) inset; font: inherit; color: var(--ink); text-align: left; cursor: pointer;
 		overflow: hidden; transition: left var(--ease), width var(--ease), top var(--ease), filter 0.15s; }
-	.block .days { position: absolute; top: 0; height: 4px; border-radius: 0 0 3px 3px; background: var(--c); transition: left var(--ease), width var(--ease); }
+	.block .days { position: absolute; top: 0; height: 4px; border-radius: 0 0 3px 3px; background: color-mix(in srgb, var(--ink) 35%, transparent); transition: left var(--ease), width var(--ease); }
 	.block .l1, .block .l2 { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.block .l1 { font-size: 14px; line-height: 18px; }
 	.block .t { font-weight: 700; }
 	.block .l2 { font-size: 12px; line-height: 15px; color: var(--muted); }
-	.block .sq { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--c); margin-right: 6px; vertical-align: 0; }
+	.block .sq { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--muted); margin-right: 6px; vertical-align: 0; }
 	@media (hover: hover) {
-		.month:hover { background: var(--hover); }
-		.month.open:hover { background: color-mix(in srgb, var(--s) 28%, transparent); }
+		.month:hover { background: color-mix(in srgb, var(--s) 70%, var(--bg)); }
+		.month.open:hover { background: color-mix(in srgb, var(--s) 80%, var(--bg)); }
 		.block:hover { filter: var(--hover-filter); z-index: 3; }
 	}
 	.block:focus-visible { z-index: 3; }
 	/* Presenting: smaller, one line, the moment on show lit up and the rest faded. */
 	.compact .block { padding: 2px 10px 0; border-radius: 14px; }
 	.compact .block .l1 { font-size: 12px; line-height: 15px; }
-	.compact .month .name { top: 6px; font-size: 12px; }
+	.compact .month .name { font-size: 12px; }
 	.compact .nums { top: 25px; }
 	.focusing .block { opacity: 0.45; transition: left var(--ease), width var(--ease), top var(--ease), filter 0.15s, opacity 0.4s, box-shadow 0.4s; }
-	.focusing .block.on { opacity: 1; z-index: 3; box-shadow: 0 0 0 2px var(--c), 0 6px 18px rgba(10, 20, 30, 0.18); background: color-mix(in srgb, var(--c) 26%, var(--surface)); }
+	.focusing .block.on { opacity: 1; z-index: 3; box-shadow: 0 0 0 2px var(--ink), 0 6px 18px rgba(10, 20, 30, 0.18); }
 	@media (prefers-reduced-motion: reduce) {
 		.wrap { --ease: 0s linear; }
 		.nums { animation: none; }

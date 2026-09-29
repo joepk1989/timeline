@@ -111,8 +111,8 @@
 </div>
 
 <style>
-	.day { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; background: color-mix(in srgb, var(--s) 16%, var(--bg)); animation: zoomin 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-	@keyframes zoomin { from { opacity: 0; transform: scale(0.97); } }
+	.day { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; background: color-mix(in srgb, var(--s) 16%, var(--bg)); animation: zoomin 0.35s ease both; }
+	@keyframes zoomin { from { opacity: 0; } }
 	/* Clear of the arrows at the screen's sides that go to the previous and next year. */
 	header { flex: 0 0 var(--head); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 80px; }
 	h3 { margin: 0; font-size: 20px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
@@ -130,10 +130,11 @@
 	.sky .hr.major { border-left-color: color-mix(in srgb, var(--ink) 22%, transparent); }
 	.lbl { position: absolute; transform: translateX(-50%); font-size: 12px; color: var(--muted); white-space: nowrap; }
 	.lbl b { color: var(--ink); }
-	.moon { position: absolute; top: calc(var(--sky) - 62px); color: color-mix(in srgb, var(--s) 70%, var(--ink)); }
+	.moon { position: absolute; top: calc(var(--sky) - 62px); color: #fff; }
+	.moon :global(svg) { fill: #fff; width: 26px; height: 26px; }
 	.moon.l { left: 14px; }
 	.moon.r { right: 14px; }
-	.sun { position: absolute; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; background: color-mix(in srgb, #f4b43a 80%, var(--surface)); box-shadow: 0 0 0 6px color-mix(in srgb, #f4b43a 22%, transparent); }
+	.sun { position: absolute; width: 28px; height: 28px; margin-left: -14px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.35); }
 	.now { position: absolute; transform: translate(-50%, -50%); z-index: 2; padding: 6px 10px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 	/* Below the arc: the hour columns, the hours gone by darker, and the day's moments. */
