@@ -38,10 +38,8 @@
 	const GAP = 6; // px between blocks on a row
 
 	let win = $state(0);
-	// The line breaks out of the page column to the full width of the screen, less any scroll bar:
-	// `vw` is that width, `shift` how far the column sits from the screen's left edge.
+	// The line spans its container, which the page makes as wide as the screen (less any scroll bar).
 	let screen = $state(0);
-	let shift = $state(0);
 	// A small margin on both sides, so the first and last days do not touch the screen's edge.
 	const edge = $derived(screen > 640 ? 16 : 8);
 	const vw = $derived(Math.max(0, screen - 2 * edge));
@@ -101,16 +99,6 @@
 		fill = Math.round(Math.max(260, section.clientHeight - top - 16));
 	});
 
-	$effect(() => {
-		void win;
-		const col = scroller?.parentElement;
-		if (!col) return;
-		const box = (col.closest('section, .stage') as HTMLElement | null) ?? document.documentElement;
-		const r = box.getBoundingClientRect();
-		shift = Math.round(col.getBoundingClientRect().left - r.left - box.clientLeft);
-		screen = box.clientWidth;
-	});
-
 	// On a narrow screen, start at today.
 	$effect(() => {
 		if (scroller && todayDoy != null && pinned == null && full > vw) scroller.scrollLeft = yearX(monthSpans(y, full), todayDoy + 0.5) - vw / 2;
@@ -145,7 +133,7 @@
 
 <svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
 
-<div style:margin-left="{-shift}px" style:width={screen ? `${screen}px` : '100vw'} style:--edge="{edge}px" class="scroll" class:flush={compact} bind:this={scroller}>
+<div bind:clientWidth={screen} style:--edge="{edge}px" class="scroll" bind:this={scroller}>
 	<div
 		bind:this={wrapEl}
 		class="wrap"
@@ -206,8 +194,7 @@
 
 <style>
 	/* Breaks out of the page column to the full width of the screen. */
-	.scroll { overflow-x: auto; overflow-y: hidden; margin-top: 4px; margin-bottom: 16px; padding: 0 var(--edge); scrollbar-width: thin; }
-	.scroll.flush { margin-top: 0; margin-bottom: 0; }
+	.scroll { overflow-x: auto; overflow-y: hidden; padding: 0 var(--edge); scrollbar-width: thin; }
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, a header with its name on a season-coloured edge. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }

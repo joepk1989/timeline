@@ -214,7 +214,7 @@
 		{/if}
 	</main>
 
-	<div class="months" style:view-transition-name="pres-months">
+	<div class="months" class:edge={app.yearView === 'lijn'} style:view-transition-name="pres-months">
 		{#if app.yearView === 'lijn'}
 			<YearLines {y} {occs} compact height={Math.round(Math.max(170, vh * 0.26))} focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
 		{:else}
@@ -267,6 +267,8 @@
 	.empty { color: var(--muted); font-size: 20px; }
 
 	.months { min-width: 0; }
+	/* The Jaarlijn spans the screen from edge to edge: undo the stage's side padding. */
+	.months.edge { margin: 0 calc(-1 * max(3vw, 16px)); }
 
 	@media (min-width: 1200px) {
 		.big { font-size: clamp(120px, 11vw, 260px); }
