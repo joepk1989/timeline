@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { dayMoments, dayOfYear, spanOf, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -136,5 +136,16 @@ describe('the day view', () => {
 		expect(spanOf(occs[4])).toEqual({ from: { y: 2027, m: 0, d: 1 }, to: { y: 2027, m: 11, d: 31 } });
 		expect(spanOf(occs[1])).toEqual({ from: { y: 2027, m: 6, d: 7 }, to: { y: 2027, m: 6, d: 10 } });
 		expect(dayMoments(occs, 2027, 7, 9).map((o) => o.moment.id)).toEqual(['4']); // the whole year
+	});
+});
+
+describe('parts of a line', () => {
+	it('shares a line evenly, or gives one part more', () => {
+		expect(partSpans(300, 3)).toEqual([{ left: 0, width: 100 }, { left: 100, width: 100 }, { left: 200, width: 100 }]);
+		const p = partSpans(300, 3, 1, 0.5);
+		expect(p.map((x) => x.width)).toEqual([75, 150, 75]);
+		expect(partX(p, 1.5)).toBe(150);
+		expect(partX(p, 3)).toBe(300);
+		expect(partX(p, 0)).toBe(0);
 	});
 });

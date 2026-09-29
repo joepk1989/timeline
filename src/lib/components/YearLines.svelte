@@ -8,7 +8,7 @@
 	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, WEEKDAYS, season } from '$lib/domain/dates';
 	import { whenLabel } from '$lib/domain/occurrences';
-	import { dayOfYear, monthSpans, packRows, yearLines, yearX } from '$lib/domain/view';
+	import { dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import DayLine from './DayLine.svelte';
 	import Icon from './Icon.svelte';
@@ -70,7 +70,14 @@
 	// A month over the full width, also with a day zoomed into, keeps the other months as thin strips.
 	const share = $derived(pinned != null ? 1 - (11 * strip) / full : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full);
 	const spans = $derived(monthSpans(y, full, open, share));
-	const x = (doy: number) => yearX(spans, doy);
+	// In a month over the full width the days can be wide or narrow (one pointed at, or zoomed into), so
+	// time there is placed by the days themselves.
+	const x = (doy: number) => {
+		if (pinned == null || !dayParts) return yearX(spans, doy);
+		const sp = spans[pinned];
+		if (doy < sp.start || doy > sp.start + sp.days) return yearX(spans, doy);
+		return sp.left + partX(dayParts, doy - sp.start);
+	};
 
 	// How wide a block's text is, so a festival of a few days still shows its whole name.
 	let ctx: CanvasRenderingContext2D | null = null;
@@ -134,7 +141,9 @@
 	}
 	function pin(m: number | null) {
 		clearTimeout(timer);
+		clearTimeout(dayTimer);
 		hover = null;
+		dayHover = null;
 		pinned = m;
 		day = null;
 		scroller?.scrollTo({ left: 0 });
@@ -149,14 +158,26 @@
 	/** Where a day of the month over the full width sits: all alike, or the one zoomed into wide and the rest thin. */
 	// Together the thin days take at most 15% of the width, so the day itself stays wide, also on a phone.
 	const dstrip = $derived(Math.min(8, (vw * 0.15) / 30));
+	// A day pointed at opens up a little, as a month does in the year; a day zoomed into takes the width.
+	let dayHover = $state<number | null>(null);
+	let dayTimer: ReturnType<typeof setTimeout> | undefined;
+	function pointDay(d: number | null, e: PointerEvent) {
+		if (e.pointerType !== 'mouse' || day != null) return;
+		clearTimeout(dayTimer);
+		dayTimer = setTimeout(() => (dayHover = d), d == null ? 250 : 90);
+	}
+	const dayParts = $derived.by(() => {
+		if (pinned == null) return null;
+		const sp = spans[pinned];
+		if (wide && day != null) return partSpans(sp.width, sp.days, day - 1, 1 - ((sp.days - 1) * dstrip) / sp.width);
+		const open = day ?? dayHover;
+		if (open == null) return partSpans(sp.width, sp.days);
+		return partSpans(sp.width, sp.days, open - 1, Math.min(0.3, Math.max(4 / sp.days, 110 / sp.width)));
+	});
 	function dayBox(i: number): { left: number; width: number } {
 		const sp = spans[pinned!];
-		if (!wide || day == null) return { left: sp.left + (i * sp.width) / sp.days, width: sp.width / sp.days };
-		const big = sp.width - (sp.days - 1) * dstrip;
-		const k = day - 1;
-		if (i < k) return { left: sp.left + i * dstrip, width: dstrip };
-		if (i === k) return { left: sp.left + k * dstrip, width: big };
-		return { left: sp.left + k * dstrip + big + (i - k - 1) * dstrip, width: dstrip };
+		const p = dayParts![i];
+		return { left: sp.left + p.left, width: p.width };
 	}
 	/** Days of the month over the full width with something of their own on them (not a month or year long): a dot. */
 	function busy(i: number): boolean {
@@ -188,10 +209,10 @@
 		style:--head="{HEAD}px"
 		role="group"
 		aria-label="Het jaar {y}, maand voor maand"
-		onpointerleave={(e) => point(null, e)}
+		onpointerleave={(e) => { point(null, e); pointDay(null, e); }}
 	>
 		{#each spans as sp (sp.m)}
-			<div class="col" class:open={open === sp.m} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
+			<div class="col" class:open={open === sp.m} class:pinned={pinned === sp.m} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
 			<button
 				class="month"
 				class:open={open === sp.m}
@@ -231,11 +252,13 @@
 						class:we={[0, 6].includes(new Date(y, sp.m, i + 1).getDay())}
 						class:thin={box.width < 18}
 						class:busy={busy(i)}
+						class:pointed={dayHover === i + 1 && day == null}
 						style:left="{box.left}px"
 						style:width="{box.width}px"
 						aria-label="{i + 1} {MONTHS[sp.m]} bekijken"
+						onpointerenter={(e) => pointDay(i + 1, e)}
 						onclick={() => openDay(i + 1)}
-					><span>{i + 1}</span></button>
+					><span>{box.width >= 60 ? `${WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} ${i + 1}` : i + 1}</span></button>
 				{/if}
 			{/each}
 		{/if}
@@ -267,7 +290,7 @@
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, on top a bar in the colour of its season, the only colour here. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
-	.col.open { background: repeating-linear-gradient(to right, transparent 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
+	.col.open:not(.pinned) { background: repeating-linear-gradient(to right, transparent 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
 	/* The colour is only on the band with the month's name; the days below it have none. */
 	.wrap { --numrow: 28px; }
 	.wrap.compact { --numrow: 19px; }
@@ -287,7 +310,10 @@
 	/* In a month over the full width, each day is a column you can zoom into. */
 	.dayc { position: absolute; top: calc(var(--head) - 28px); bottom: 0; z-index: 1; padding: 0; border: none; border-radius: 0; background: transparent; font: inherit; color: color-mix(in srgb, var(--ink) 65%, transparent); cursor: zoom-in; transition: left var(--ease), width var(--ease), background-color 0.15s; }
 	.dayc.thin span { display: none; }
-	.dayc.thin { border-left: 1px solid color-mix(in srgb, var(--line) 35%, transparent); }
+	.dayc { border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+	.dayc.thin { border-left-color: color-mix(in srgb, var(--line) 35%, transparent); }
+	.dayc.pointed { background: var(--hover); }
+	.dayc.pointed span { color: var(--ink); }
 	.dayc.thin.busy::after { content: ''; position: absolute; top: 13px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 70%, transparent); }
 	/* The day zoomed into, as wide as the month less a thin strip for each other day. */
 	/* Above the day zoomed into, its date stays in the bar, with the name of the day before it. */

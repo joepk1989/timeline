@@ -262,3 +262,21 @@ export function spanOf(o: Occurrence): { from: Day; to: Day } {
 	if (o.d == null) return { from: { y: o.y, m: o.m, d: 1 }, to: { y: o.y, m: o.m, d: daysInMonth(o.y, o.m) } };
 	return { from: { y: o.y, m: o.m, d: o.d }, to: o.end ?? { y: o.y, m: o.m, d: o.d } };
 }
+
+/** Parts of a line of `total` px: all alike, or one open part taking `share` of it and the rest sharing what is left. */
+export function partSpans(total: number, n: number, open: number | null = null, share = 1 / n): { left: number; width: number }[] {
+	const openW = open == null ? 0 : total * share;
+	const rest = (total - openW) / (open == null ? n : n - 1);
+	let left = 0;
+	return Array.from({ length: n }, (_, i) => {
+		const width = i === open ? openW : rest;
+		const s = { left, width };
+		left += width;
+		return s;
+	});
+}
+/** Where a point `i` (a part's number, with a fraction) sits on a line of parts. */
+export function partX(parts: { left: number; width: number }[], i: number): number {
+	const k = Math.max(0, Math.min(parts.length - 1, Math.floor(i)));
+	return parts[k].left + (Math.min(i, parts.length) - k) * parts[k].width;
+}
