@@ -27,6 +27,7 @@
 	}
 
 	const sub = $derived.by(() => {
+		if (app.scales) return 'Van 4,6 miljard jaar geleden tot vandaag';
 		if (app.mode === 'year') return `${app.scope.from} – ${app.scope.to}${app.count ? ' · ' + momentsLabel(app.count) : ''}`;
 		const a = ageLabel(app.tl, app.year, app.month, null);
 		return `${MONTHS[app.month]} ${app.year}${a && a !== app.kind.before ? ' · ' + a : ''}`;
@@ -69,12 +70,13 @@
 		{#if canFullscreen}
 			<span class="fs"><Btn variant="pill" onclick={toggleFullscreen} aria-label="Volledig scherm"><Icon name="full" /><span class="lbl">{fullscreen ? 'Sluiten' : 'Volledig scherm'}</span></Btn></span>
 		{/if}
-		<Btn variant="pill" onclick={startPresenting} aria-label="Presenteren"><Icon name="play" /><span class="lbl">Presenteren</span></Btn>
+		{#if !app.scales}<Btn variant="pill" onclick={startPresenting} aria-label="Presenteren"><Icon name="play" /><span class="lbl">Presenteren</span></Btn>{/if}
 		<Btn variant="pill" onclick={() => (ui.menu = { y: app.year, m: app.mode === 'month' ? app.month : null })} aria-haspopup="dialog" aria-label="Menu"><Icon name="menu" /><span class="lbl">Menu</span></Btn>
-		{#if fold}
+		{#if fold && !app.scales}
 			<button class="more-btn" class:open aria-expanded={open} aria-controls="bar-more" aria-label={open ? 'Filters en jaren verbergen' : 'Filters en jaren tonen'} onclick={() => (open = !open)}><Icon name="down" /></button>
 		{/if}
 	</div>
+	{#if !app.scales}
 	<div class="more" id="bar-more" class:fold class:open>
 	<div class="filters" role="group" aria-label="Filter op categorie">
 		<Chip on={!app.filter.categoryId} onclick={() => app.setCategory(null)}>Alles</Chip>
@@ -107,6 +109,7 @@
 		{:else}<span>{MONTHS_SHORT[0]} {app.year}</span><span>{MONTHS_SHORT[11]} {app.year}</span>{/if}
 	</div>
 	</div>
+	{/if}
 </header>
 
 <style>

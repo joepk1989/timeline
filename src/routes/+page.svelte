@@ -9,6 +9,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import Menu from '$lib/components/Menu.svelte';
 	import Pager from '$lib/components/Pager.svelte';
+	import ScalesView from '$lib/components/ScalesView.svelte';
 	import SignIn from '$lib/components/SignIn.svelte';
 	import Presenter from '$lib/components/Presenter.svelte';
 	import TimelineEditor from '$lib/components/TimelineEditor.svelte';
@@ -50,11 +51,15 @@
 <div class="app">
 	<TopBar {theme} ontheme={toggleTheme} />
 	{#if app.ready}
-		<Pager />
-		{#if app.canEdit}
-			<button class="fab" onclick={add}><Icon name="plus" />Toevoegen</button>
+		{#if app.scales}
+			<ScalesView />
 		{:else}
-			<div class="ro">Alleen bekijken</div>
+			<Pager />
+			{#if app.canEdit}
+				<button class="fab" onclick={add}><Icon name="plus" />Toevoegen</button>
+			{:else}
+				<div class="ro">Alleen bekijken</div>
+			{/if}
 		{/if}
 	{:else}
 		<div class="loading">Laden…</div>

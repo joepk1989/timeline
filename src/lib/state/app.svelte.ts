@@ -4,6 +4,7 @@ import { KINDS } from '$lib/domain/kinds';
 import { today } from '$lib/domain/dates';
 import { demoTimeline } from '$lib/domain/demo';
 import { addMissingFestivalPhotos, demoPhotoSvg, festivalTimeline, isDemoPhoto } from '$lib/domain/festivals';
+import { isScales, scalesTimeline } from '$lib/domain/scales';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -56,6 +57,8 @@ class AppState {
 
 	tl = $derived<Timeline>(this.timelines.find((t) => t.id === this.curId) ?? this.timelines[0] ?? this.temp ?? blank(this.now.y));
 	kind = $derived(KINDS[this.tl.kind]);
+	/** The time scales demo has a screen of its own. */
+	scales = $derived(isScales(this.tl));
 	role = $derived<Role>(this.roles[this.tl.id] ?? 'owner');
 	canEdit = $derived(this.role !== 'viewer');
 	own = $derived(this.moments.filter((m) => m.timelineId === this.tl.id));
@@ -230,8 +233,8 @@ class AppState {
 	}
 
 	/** Loads a demo: a whole life, or the festivals in the Netherlands for the coming ten years. */
-	async loadDemo(which: 'leven' | 'festivals' = 'leven') {
-		const { timeline, moments } = (which === 'festivals' ? festivalTimeline : demoTimeline)(this.now, newId);
+	async loadDemo(which: 'leven' | 'festivals' | 'tijdschalen' = 'leven') {
+		const { timeline, moments } = ({ leven: demoTimeline, festivals: festivalTimeline, tijdschalen: scalesTimeline })[which](this.now, newId);
 		const existing = this.timelines.find((t) => t.demo && t.name === timeline.name);
 		if (existing) {
 			this.switchTo(existing.id);

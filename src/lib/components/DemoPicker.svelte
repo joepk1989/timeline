@@ -3,13 +3,15 @@
 	import { app } from '$lib/state/app.svelte';
 
 	let { onpick, label = 'Demo laden' }: { onpick?: () => void; label?: string } = $props();
-	const DEMOS: ['leven' | 'festivals', string][] = [
+	type Demo = 'leven' | 'festivals' | 'tijdschalen';
+	const DEMOS: [Demo, string][] = [
 		['leven', 'Een heel leven'],
-		['festivals', 'Festivals in Nederland']
+		['festivals', 'Festivals in Nederland'],
+		['tijdschalen', 'Tijdschalen: van eonen tot weken']
 	];
 	function change(e: Event) {
 		const el = e.currentTarget as HTMLSelectElement;
-		const v = el.value as 'leven' | 'festivals';
+		const v = el.value as Demo;
 		el.value = '';
 		if (!v) return;
 		onpick?.();
