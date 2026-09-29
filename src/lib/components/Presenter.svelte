@@ -30,6 +30,7 @@
 	let loop = $state(!!saved.loop);
 	let playing = $state(true);
 	let idle = $state(false);
+	let vh = $state(800);
 	const startYear = app.year;
 
 	const first = momentSlides(app.visible, app.scope, startYear, app.now, { what: firstWhat, photos: false });
@@ -155,7 +156,7 @@
 	});
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} bind:innerHeight={vh} />
 <svelte:document {onfullscreenchange} onvisibilitychange={() => document.visibilityState === 'visible' && lock && wake()} />
 
 <div class="stage" class:idle role="region" aria-label="Presentatie van {app.tl.name}" onpointermove={poke}>
@@ -215,7 +216,7 @@
 
 	<div class="months" style:view-transition-name="pres-months">
 		{#if app.yearView === 'lijn'}
-			<YearLines {y} {occs} compact focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
+			<YearLines {y} {occs} compact height={Math.round(Math.max(170, vh * 0.26))} focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
 		{:else}
 			<MonthTabs {y} {occs} {focus} onmonth={jumpMonth} onday={jumpDay} />
 		{/if}
@@ -224,7 +225,7 @@
 
 <style>
 	.stage { position: fixed; inset: 0; z-index: 40; background: var(--bg); color: var(--ink); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 2vh;
-		padding: calc(env(safe-area-inset-top, 0px) + 3vh) max(3vw, 16px) calc(env(safe-area-inset-bottom, 0px) + 2vh); overflow: hidden; }
+		padding: calc(env(safe-area-inset-top, 0px) + 3vh) max(3vw, 16px) env(safe-area-inset-bottom, 0px); overflow: hidden; }
 	.stage.idle { cursor: none; }
 	.prog { position: absolute; left: 0; top: 0; height: 4px; width: 0; background: var(--accent); }
 

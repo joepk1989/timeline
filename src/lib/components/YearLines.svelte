@@ -17,7 +17,8 @@
 		compact = false,
 		focus = null,
 		openMonth = null,
-		onpick
+		onpick,
+		height: fixed = null
 	}: {
 		y: number;
 		occs: Occurrence[];
@@ -29,11 +30,11 @@
 		openMonth?: number | null;
 		/** What a click on a block does, instead of opening the moment. */
 		onpick?: (o: Occurrence) => void;
+		/** A fixed height in px: the rows squeeze together to fit it. */
+		height?: number | null;
 	} = $props();
 
 	const HEAD = $derived(compact ? 44 : 52); // month names and, for an open month, its day numbers
-	const ROW = $derived(compact ? 32 : 50); // px per row of blocks
-	const BLOCK = $derived(compact ? 27 : 42); // px a block is high
 	const GAP = 6; // px between blocks on a row
 
 	let vw = $state(0);
@@ -66,7 +67,7 @@
 			const shown = pinned == null || (it.to >= spans[pinned].start && it.from < spans[pinned].start + spans[pinned].days);
 			const from = x(it.from);
 			const days = Math.max(4, x(it.to + 1) - from - 2);
-			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? '600 13px' : '600 14px');
+			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? '600 12px' : '600 14px');
 			const text = (compact ? name : Math.max(name, textWidth(whenLabel(it.o), '12px') + 14)) + (compact ? 28 : 36);
 			const w = Math.min(Math.max(days, text), compact ? 220 : 280, full);
 			const left = Math.max(0, Math.min(from, full - w));
@@ -77,7 +78,11 @@
 		const row = new Map(shown.map((b, i) => [b, rows[i]]));
 		return { list: all.map((b) => ({ ...b, row: row.get(b) ?? 0 })), rows: count };
 	});
-	const height = $derived(Math.max(fill, HEAD + 10 + Math.max(compact ? 1 : 3, blocks.rows) * ROW + 10));
+	// With a fixed height the rows squeeze together to fit.
+	const rowsFit = $derived(fixed ? (fixed - HEAD - 16) / Math.max(1, blocks.rows) : Infinity);
+	const ROW = $derived(Math.min(compact ? 32 : 50, rowsFit)); // px per row of blocks
+	const BLOCK = $derived(Math.max(14, Math.min(compact ? 27 : 42, ROW - 4))); // px a block is high
+	const height = $derived(fixed ?? Math.max(fill, HEAD + 10 + Math.max(compact ? 1 : 3, blocks.rows) * ROW + 10));
 	const todayDoy = $derived(app.now.y === y ? dayOfYear(y, app.now.m, app.now.d) : null);
 
 	// Fill the screen below the line's top edge.
@@ -123,7 +128,7 @@
 
 <svelte:window bind:innerWidth={vw} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
 
-<div class="scroll" bind:this={scroller}>
+<div class="scroll" class:flush={compact} bind:this={scroller}>
 	<div
 		bind:this={wrapEl}
 		class="wrap"
@@ -185,6 +190,7 @@
 <style>
 	/* Breaks out of the page column to the full width of the screen. */
 	.scroll { overflow-x: auto; overflow-y: hidden; margin: 4px calc(50% - 50vw) 16px; scrollbar-width: thin; }
+	.scroll.flush { margin-top: 0; margin-bottom: 0; }
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, a header with its name on a season-coloured edge. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
@@ -216,8 +222,8 @@
 	}
 	.block:focus-visible { z-index: 3; }
 	/* Presenting: smaller, one line, the moment on show lit up and the rest faded. */
-	.compact .block { padding: 3px 10px 0; border-radius: 14px; }
-	.compact .block .l1 { font-size: 13px; }
+	.compact .block { padding: 2px 10px 0; border-radius: 14px; }
+	.compact .block .l1 { font-size: 12px; line-height: 15px; }
 	.compact .month .name { top: 6px; font-size: 12px; }
 	.compact .nums { top: 25px; }
 	.focusing .block { opacity: 0.45; transition: left var(--ease), width var(--ease), top var(--ease), filter 0.15s, opacity 0.4s, box-shadow 0.4s; }
