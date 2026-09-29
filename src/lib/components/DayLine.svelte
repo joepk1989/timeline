@@ -3,7 +3,7 @@
 	// midnight, and the day's moments as cards. On today the hours gone by are darker and the time is shown.
 	import { onDestroy } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
-	import { MONTHS, WEEKDAYS, season } from '$lib/domain/dates';
+	import { MONTHS, WEEKDAYS } from '$lib/domain/dates';
 	import { whenLabel } from '$lib/domain/occurrences';
 	import { dayMoments, sunHeight } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
@@ -50,10 +50,9 @@
 	const nowH = $derived(clock.getHours() + clock.getMinutes() / 60);
 	const nowLabel = $derived(`${clock.getHours()}:${String(clock.getMinutes()).padStart(2, '0')}`);
 
-	const color = (o: Occurrence) => (o.moment.virtual ? 'var(--accent)' : app.catOf(o.moment.categoryId).color);
 </script>
 
-<div class="day" style:--s="var(--{season(m)})" style:--head="{HEAD}px" style:--sky="{SKY}px" bind:clientWidth={w} role="region" aria-label="{weekday} {d} {MONTHS[m]} {y}">
+<div class="day" style:--head="{HEAD}px" style:--sky="{SKY}px" bind:clientWidth={w} role="region" aria-label="{weekday} {d} {MONTHS[m]} {y}">
 	<header>
 		<button class="back" onclick={onback} aria-label="Terug naar {MONTHS[m]}"><Icon name="back" /><span>{MONTHS[m]}</span></button>
 		<h3><span class="wd">{weekday}</span> <b>{d} {MONTHS[m]}</b></h3>
@@ -90,7 +89,7 @@
 		<div class="cards">
 			{#each list as o, i (o.moment.id + i)}
 				{@const mo = o.moment}
-				<button class="card" style:--c={color(o)} onclick={() => onopen(o)}>
+				<button class="card" onclick={() => onopen(o)}>
 					<span class="pills">
 						<span class="pill">{o.d == null ? `Heel ${MONTHS[o.m!]}` : whenLabel(o)}</span>
 						{#if !mo.virtual}<span class="pill cat"><span class="dot"></span>{app.catOf(mo.categoryId).name}</span>{/if}
@@ -111,7 +110,7 @@
 </div>
 
 <style>
-	.day { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; background: color-mix(in srgb, var(--s) 16%, var(--bg)); animation: zoomin 0.35s ease both; }
+	.day { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); animation: zoomin 0.35s ease both; }
 	@keyframes zoomin { from { opacity: 0; } }
 	/* Clear of the arrows at the screen's sides that go to the previous and next year. */
 	header { flex: 0 0 var(--head); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 80px; }
@@ -125,7 +124,8 @@
 	/* The sky: darker above the arc of the sun, the hours standing on the arc. */
 	.sky { position: relative; flex: 0 0 var(--sky); }
 	.sky svg { position: absolute; inset: 0; display: block; }
-	.sky path { fill: color-mix(in srgb, var(--s) 34%, var(--bg)); }
+	/* No colour on the day: a grey sky, so the white sun and moons stand out. */
+	.sky path { fill: color-mix(in srgb, var(--ink) 16%, var(--bg)); }
 	.sky .hr { position: absolute; bottom: 0; width: 0; border-left: 1px solid color-mix(in srgb, var(--ink) 10%, transparent); }
 	.sky .hr.major { border-left-color: color-mix(in srgb, var(--ink) 22%, transparent); }
 	.lbl { position: absolute; transform: translateX(-50%); font-size: 12px; color: var(--muted); white-space: nowrap; }
@@ -135,19 +135,19 @@
 	.moon.l { left: 14px; }
 	.moon.r { right: 14px; }
 	.sun { position: absolute; width: 28px; height: 28px; margin-left: -14px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.35); }
-	.now { position: absolute; transform: translate(-50%, -50%); z-index: 2; padding: 6px 10px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+	.now { position: absolute; transform: translate(-50%, -50%); z-index: 2; padding: 6px 10px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 	/* Below the arc: the hour columns, the hours gone by darker, and the day's moments. */
 	.below { position: relative; flex: 1 1 0; min-height: 0; }
 	.col { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid color-mix(in srgb, var(--ink) 8%, transparent); }
 	.col.major { border-left-color: color-mix(in srgb, var(--ink) 18%, transparent); }
-	.gone { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--s) 14%, transparent); }
+	.gone { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--ink) 6%, transparent); }
 	.cards { position: relative; height: 100%; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 14px; padding: 18px 16px 90px; }
 	.card { width: min(560px, 100%); display: flex; flex-direction: column; gap: 10px; padding: 0 0 18px; border: none; border-radius: 18px; background: var(--surface); color: var(--ink); text-align: left; font: inherit; cursor: pointer;
 		box-shadow: 0 6px 20px rgba(10, 20, 30, 0.1); overflow: hidden; transition: filter 0.15s, transform 0.2s; }
 	.pills { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px 0; }
-	.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--c) 14%, var(--surface)); font-size: 12px; font-weight: 700; }
-	.dot { width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+	.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--faint); font-size: 12px; font-weight: 700; }
+	.dot { width: 8px; height: 8px; border-radius: 2px; background: var(--muted); }
 	.body { display: flex; gap: 14px; padding: 0 18px; align-items: flex-start; }
 	.txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 	.ttl { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
