@@ -136,11 +136,18 @@
 
 	// Pointing opens a month after a short pause, so sweeping across the months stays calm.
 	let timer: ReturnType<typeof setTimeout> | undefined;
+	// Only a change of what is pointed at restarts the pause, so moving within a column stays calm.
+	let wantM: number | null | undefined;
+	let wantD: number | null | undefined;
 	function point(m: number | null, e: PointerEvent) {
-		if (e.pointerType !== 'mouse' || pinned != null) return;
+		if (e.pointerType !== 'mouse' || pinned != null || m === wantM) return;
+		wantM = m;
 		clearTimeout(timer);
 		timer = setTimeout(() => {
-			if (hover !== m) dayHover = null;
+			if (hover !== m) {
+				dayHover = null;
+				wantD = undefined;
+			}
 			hover = m;
 		}, m == null ? 250 : 90);
 	}
@@ -149,6 +156,7 @@
 		clearTimeout(dayTimer);
 		hover = null;
 		dayHover = null;
+		wantM = wantD = undefined;
 		pinned = m;
 		day = null;
 		scroller?.scrollTo({ left: 0 });
@@ -167,7 +175,8 @@
 	let dayHover = $state<number | null>(null);
 	let dayTimer: ReturnType<typeof setTimeout> | undefined;
 	function pointDay(d: number | null, e: PointerEvent) {
-		if (e.pointerType !== 'mouse' || day != null) return;
+		if (e.pointerType !== 'mouse' || day != null || d === wantD) return;
+		wantD = d;
 		clearTimeout(dayTimer);
 		dayTimer = setTimeout(() => (dayHover = d), d == null ? 250 : 90);
 	}
@@ -189,6 +198,20 @@
 		if (dm == null) return false;
 		const doy = spans[dm].start + i;
 		return lines.items.some((it) => it.from <= doy && it.to >= doy && it.to - it.from < 27);
+	}
+	/** The whole column counts, also below the bar and over the blocks: find the month and day under the mouse. */
+	function onmove(e: PointerEvent) {
+		if (e.pointerType !== 'mouse' || !wrapEl) return;
+		const px = e.clientX - wrapEl.getBoundingClientRect().left;
+		if (pinned == null) {
+			const sp = spans.find((s) => px >= s.left && px < s.left + s.width);
+			point(sp ? sp.m : null, e);
+		}
+		if (dm != null && day == null && dayParts) {
+			const rel = px - spans[dm].left;
+			const i = dayParts.findIndex((p) => rel >= p.left && rel < p.left + p.width);
+			pointDay(i >= 0 ? i + 1 : null, e);
+		}
 	}
 	function back() {
 		if (day != null) day = null;
@@ -214,10 +237,11 @@
 		style:--head="{HEAD}px"
 		role="group"
 		aria-label="Het jaar {y}, maand voor maand"
+		onpointermove={onmove}
 		onpointerleave={(e) => { point(null, e); pointDay(null, e); }}
 	>
 		{#each spans as sp (sp.m)}
-			<div class="col" class:open={open === sp.m} class:days={dm === sp.m} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
+			<div class="col" class:open={open === sp.m} class:days={dm === sp.m} class:pointed={hover === sp.m && pinned == null && !compact} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
 			<button
 				class="month"
 				class:open={open === sp.m}
@@ -299,6 +323,8 @@
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, on top a bar in the colour of its season, the only colour here. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
+	/* The month pointed at is lit up over its whole column, not only its bar. */
+	.col.pointed { background-color: var(--hover); }
 	.col.open:not(.days) { background: repeating-linear-gradient(to right, transparent 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
 	/* The colour is only on the band with the month's name; the days below it have none. */
 	.wrap { --numrow: 28px; }
