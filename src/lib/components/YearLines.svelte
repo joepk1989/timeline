@@ -37,7 +37,14 @@
 	const HEAD = $derived(compact ? 44 : 52); // month names and, for an open month, its day numbers
 	const GAP = 6; // px between blocks on a row
 
-	let vw = $state(0);
+	let win = $state(0);
+	// The line breaks out of the page column to the full width of the screen, less any scroll bar:
+	// `vw` is that width, `shift` how far the column sits from the screen's left edge.
+	let screen = $state(0);
+	let shift = $state(0);
+	// A small margin on both sides, so the first and last days do not touch the screen's edge.
+	const edge = $derived(screen > 640 ? 16 : 8);
+	const vw = $derived(Math.max(0, screen - 2 * edge));
 	let vh = $state(0);
 	let wrapEl = $state<HTMLDivElement>();
 	let scroller = $state<HTMLDivElement>();
@@ -87,11 +94,21 @@
 
 	// Fill the screen below the line's top edge.
 	$effect(() => {
-		void [vh, vw];
+		void [vh, win];
 		const section = wrapEl?.closest('section');
 		if (!wrapEl || !section) return;
 		const top = wrapEl.getBoundingClientRect().top - section.getBoundingClientRect().top + section.scrollTop;
 		fill = Math.round(Math.max(260, section.clientHeight - top - 16));
+	});
+
+	$effect(() => {
+		void win;
+		const col = scroller?.parentElement;
+		if (!col) return;
+		const box = (col.closest('section, .stage') as HTMLElement | null) ?? document.documentElement;
+		const r = box.getBoundingClientRect();
+		shift = Math.round(col.getBoundingClientRect().left - r.left - box.clientLeft);
+		screen = box.clientWidth;
 	});
 
 	// On a narrow screen, start at today.
@@ -126,9 +143,9 @@
 	}
 </script>
 
-<svelte:window bind:innerWidth={vw} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
+<svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
 
-<div class="scroll" class:flush={compact} bind:this={scroller}>
+<div style:margin-left="{-shift}px" style:width={screen ? `${screen}px` : '100vw'} style:--edge="{edge}px" class="scroll" class:flush={compact} bind:this={scroller}>
 	<div
 		bind:this={wrapEl}
 		class="wrap"
@@ -189,7 +206,7 @@
 
 <style>
 	/* Breaks out of the page column to the full width of the screen. */
-	.scroll { overflow-x: auto; overflow-y: hidden; margin: 4px calc(50% - 50vw) 16px; scrollbar-width: thin; }
+	.scroll { overflow-x: auto; overflow-y: hidden; margin-top: 4px; margin-bottom: 16px; padding: 0 var(--edge); scrollbar-width: thin; }
 	.scroll.flush { margin-top: 0; margin-bottom: 0; }
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, a header with its name on a season-coloured edge. */
