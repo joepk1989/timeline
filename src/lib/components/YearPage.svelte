@@ -40,7 +40,7 @@
 	<div class="acc">
 		<div class="yv"><Seg label="Het jaar als" value={app.yearView} onchange={(v) => app.setYearView(v)} options={[['lijn', 'Jaarlijn'], ['maanden', 'Maanden']]} /></div>
 		{#if app.yearView === 'lijn'}
-			<YearLines {y} {occs} />
+			<div class="lines"><YearLines {y} {occs} /></div>
 		{:else}
 			<div style:view-transition-name={morphs ? 'pres-months' : null}><MonthTabs {y} {occs} /></div>
 			<p class="tip">{canHover ? 'Beweeg over de maanden om ze te bekijken, klik om er een te kiezen' : 'Tik op een maand om de dagen te zien'}</p>
@@ -69,13 +69,14 @@
 		.page-in { max-width: none; padding: 3vh 3vw 120px; }
 		/* Year and its line side by side, then the months across the full width, then the moments. */
 		.page-in { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'year info' 'acc acc' 'list list'; gap: 0 3vw; align-items: end; }
-		.big { grid-area: year; font-size: clamp(120px, 11vw, 260px); }
+		.big { grid-area: year; font-size: clamp(100px, min(11vw, 15vh), 260px); }
 		.info { grid-area: info; padding-bottom: 1vh; }
 		.count { margin: 0 0 8px; font-size: 18px; }
 		.stsum { margin: 0 0 8px; }
 		.acc { grid-area: acc; margin-top: 3vh; }
 		.list { grid-area: list; max-width: 1100px; padding-top: 1vh; }
 	}
-	@media (min-width: 2300px) and (min-height: 1250px) { .page-in { zoom: 1.25; } }
-	@media (min-width: 3200px) and (min-height: 1400px) { .page-in { zoom: 1.5; } }
+	/* Large screens zoom in; the Jaarlijn already spans the screen, so it keeps its own size. */
+	@media (min-width: 2300px) and (min-height: 1250px) { .page-in > :not(.acc), .acc > :not(.lines) { zoom: 1.25; } }
+	@media (min-width: 3200px) and (min-height: 1400px) { .page-in > :not(.acc), .acc > :not(.lines) { zoom: 1.5; } }
 </style>

@@ -20,6 +20,11 @@
 
 	// The line breaks out of the page column to the full width of the screen.
 	let vw = $state(0);
+	let vh = $state(0);
+	let wrapEl = $state<HTMLDivElement>();
+	// The names get the height that is left on the screen, so the year and its line fill it exactly.
+	let names = $state(380);
+	let grow = $state(0); // extra height for the line itself, on a tall screen
 	let scroller = $state<HTMLDivElement>();
 	let hover = $state<number | null>(null);
 	let pinned = $state<number | null>(null);
@@ -33,7 +38,8 @@
 	const share = $derived(pinned != null ? 1 - (11 * strip) / full : Math.max(0.35 * full, Math.min(31 * 16, width * 0.9)) / full);
 	const spans = $derived(monthSpans(y, full, open, share));
 	const x = (doy: number) => yearX(spans, doy);
-	const ruler = $derived(Math.max(80, lines.lanes * LANE + 16));
+	const baseRuler = $derived(Math.max(80, lines.lanes * LANE + 16));
+	const ruler = $derived(baseRuler + grow);
 	const labelsY = $derived(TOP + ruler + GAP);
 	const mid = (it: { from: number; to: number }) => (x(it.from) + x(it.to + 1)) / 2;
 	// With a month pinned, only what touches that month keeps its name.
@@ -49,6 +55,16 @@
 	});
 	const todayDoy = $derived(app.now.y === y ? dayOfYear(y, app.now.m, app.now.d) : null);
 	let hot = $state<string | null>(null);
+
+	$effect(() => {
+		void [vh, vw];
+		const section = wrapEl?.closest('section');
+		if (!wrapEl || !section) return;
+		const top = wrapEl.getBoundingClientRect().top - section.getBoundingClientRect().top + section.scrollTop;
+		const left = section.clientHeight - top - (TOP + baseRuler + GAP) - 20;
+		names = Math.round(Math.min(460, Math.max(vw > 640 ? 200 : 240, left)));
+		grow = Math.round(Math.min(160, Math.max(0, left - names)));
+	});
 
 	// On a narrow screen, start at today.
 	$effect(() => {
@@ -76,10 +92,11 @@
 	}
 </script>
 
-<svelte:window bind:innerWidth={vw} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
+<svelte:window bind:innerWidth={vw} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
 
-<div class="scroll" bind:this={scroller}>
+<div class="scroll" bind:this={scroller} style:--names="{names}px">
 		<div
+			bind:this={wrapEl}
 			class="wrap"
 			style:width="{full}px"
 			style:--top="{TOP}px"
@@ -155,8 +172,7 @@
 	</div>
 
 <style>
-	.scroll { overflow-x: auto; overflow-y: hidden; margin: 4px calc(50% - 50vw) 24px; scrollbar-width: thin; --names: 380px; }
-	@media (max-width: 640px) { .scroll { --names: 320px; } }
+	.scroll { overflow-x: auto; overflow-y: hidden; margin: 4px calc(50% - 50vw) 24px; scrollbar-width: thin; }
 	.wrap { position: relative; height: calc(var(--labels) + var(--names)); --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month: its name on top, then its days as thin lines (a repeating background). */
 	.month { position: absolute; top: 0; height: calc(var(--top) + var(--ruler) + 6px); padding: 0; border: none; border-left: 1px solid color-mix(in srgb, var(--s) 70%, transparent);
