@@ -1,5 +1,6 @@
 import { ageLabel } from './age';
-import { dayNumber, daysBetween, daysInMonth, parseDate } from './dates';
+import { dayNumber, daysBetween, daysInMonth, parseDate, WEEKDAYS, WEEKDAYS_SHORT } from './dates';
+import { KINDS } from './kinds';
 import { covers, inMonth, isOverdue, virtualMoments } from './occurrences';
 import type { Day, Moment, Occurrence, Status, Timeline } from './types';
 
@@ -279,4 +280,32 @@ export function partSpans(total: number, n: number, open: number | null = null, 
 export function partX(parts: { left: number; width: number }[], i: number): number {
 	const k = Math.max(0, Math.min(parts.length - 1, Math.floor(i)));
 	return parts[k].left + (Math.min(i, parts.length) - k) * parts[k].width;
+}
+
+/** A day's label as room allows, number first: "20 dinsdag", "20 di", "20", or every other number when narrow. */
+export function dayLabel(y: number, m: number, d: number, room: number): string {
+	const wd = new Date(y, m, d).getDay();
+	if (room >= 96) return `${d} ${WEEKDAYS[wd]}`;
+	if (room >= 44) return `${d} ${WEEKDAYS_SHORT[wd][0].toUpperCase()}${WEEKDAYS_SHORT[wd][1]}`;
+	if (room >= 20 || d % 2 === 1) return String(d);
+	return '';
+}
+
+/** How old, or how long, in a year: "36 jaar", "geboren"/"start" in the first year, null before or without a start. */
+export function yearAge(tl: Timeline, y: number): string | null {
+	if (!tl.anchor) return null;
+	const n = y - +tl.anchor.slice(0, 4);
+	if (n < 0) return null;
+	if (n === 0) return KINDS[tl.kind].mode === 'age' ? 'geboren' : 'start';
+	return `${n} jaar`;
+}
+
+/** A year's label in the row of years, as room allows; when narrow, only every fifth year. */
+export function yearLabel(y: number, age: string | null, count: number, room: number): string {
+	const parts = [String(y)];
+	if (room >= 110 && age) parts.push(age);
+	if (room >= 230 && count) parts.push(momentsLabel(count));
+	if (room >= 44) return parts.join(' · ');
+	if (room >= 26 || (room >= 14 && y % 5 === 0)) return `'${String(y).slice(-2)}`;
+	return '';
 }

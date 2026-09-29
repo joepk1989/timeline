@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { dayLabel, yearAge, yearLabel, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -147,5 +147,27 @@ describe('parts of a line', () => {
 		expect(partX(p, 1.5)).toBe(150);
 		expect(partX(p, 3)).toBe(300);
 		expect(partX(p, 0)).toBe(0);
+	});
+});
+
+describe('labels for the rows of years and days', () => {
+	it('puts the day number first and shortens the name as room runs out', () => {
+		expect(dayLabel(2027, 6, 20, 120)).toBe('20 dinsdag');
+		expect(dayLabel(2027, 6, 20, 50)).toBe('20 Di');
+		expect(dayLabel(2027, 6, 20, 24)).toBe('20');
+		expect(dayLabel(2027, 6, 20, 12)).toBe('');
+		expect(dayLabel(2027, 6, 21, 12)).toBe('21');
+	});
+	it('says how old in a year, and fits a year into its room', () => {
+		expect(yearAge(tl, 2021)).toBeNull();
+		expect(yearAge(tl, 2022)).toBe('geboren');
+		expect(yearAge(tl, 2026)).toBe('4 jaar');
+		expect(yearAge({ ...tl, anchor: null }, 2026)).toBeNull();
+		expect(yearLabel(2026, '4 jaar', 9, 240)).toBe('2026 · 4 jaar · 9 momenten');
+		expect(yearLabel(2026, '4 jaar', 9, 120)).toBe('2026 · 4 jaar');
+		expect(yearLabel(2026, '4 jaar', 9, 60)).toBe('2026');
+		expect(yearLabel(2026, null, 0, 30)).toBe("'26");
+		expect(yearLabel(2026, null, 0, 20)).toBe('');
+		expect(yearLabel(2025, null, 0, 20)).toBe("'25");
 	});
 });

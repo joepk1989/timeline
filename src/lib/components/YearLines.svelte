@@ -7,8 +7,8 @@
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, WEEKDAYS, season } from '$lib/domain/dates';
-	import { whenLabel } from '$lib/domain/occurrences';
-	import { dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
+	import { whenLabel, yearOccurrences } from '$lib/domain/occurrences';
+	import { dayLabel, yearAge, yearLabel, momentsLabel, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import DayLine from './DayLine.svelte';
 	import Icon from './Icon.svelte';
@@ -39,13 +39,26 @@
 		half?: boolean;
 	} = $props();
 
-	const HEAD = $derived(compact ? 44 : 64); // month numbers and names and, for an open month, its day numbers
+	// Years, months and days each get a row of the same height: the months' names, then the days below.
+	const ROWH = $derived(compact ? 22 : 34);
+	const HEAD = $derived(2 * ROWH);
+	// The row of years: how old in each, and how many moments.
+	const years = $derived(
+		Array.from({ length: app.scope.to - app.scope.from + 1 }, (_, i) => {
+			const yy = app.scope.from + i;
+			return { y: yy, age: yearAge(app.tl, yy), count: yearOccurrences(app.visible, yy).filter((o) => !o.moment.virtual).length };
+		})
+	);
 	const GAP = 6; // px between blocks on a row
 
 	let win = $state(0);
 	// The line spans its container, which the page makes as wide as the screen (less any scroll bar).
 	let screen = $state(0);
 	const vw = $derived(screen);
+	// The year on show gets room for its age and moments, as an open month does; the others share the rest.
+	const yearParts = $derived(
+		partSpans(screen, years.length, years.findIndex((yy) => yy.y === y), years.length > 1 ? Math.min(0.5, Math.max(1 / years.length, 240 / (screen || 1))) : 1)
+	);
 	let vh = $state(0);
 	let wrapEl = $state<HTMLDivElement>();
 	let scroller = $state<HTMLDivElement>();
@@ -227,6 +240,24 @@
 
 <svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && back()} />
 
+{#if !compact}
+	<!-- The years of the timeline, the same height as the months and days: click one to go there. -->
+	<div class="years" role="group" aria-label="Jaren" style:--numrow="{ROWH}px">
+		{#each years as yy, i (yy.y)}
+			<button
+				class="yr"
+				style:width="{yearParts[i]?.width ?? 0}px"
+				class:here={yy.y === y}
+				class:now={yy.y === app.now.y}
+				aria-current={yy.y === y ? 'true' : undefined}
+				aria-label="{yy.y}{yy.age ? `, ${yy.age}` : ''}{yy.count ? `, ${momentsLabel(yy.count)}` : ''}"
+				title="{yy.y}{yy.age ? ` · ${yy.age}` : ''}{yy.count ? ` · ${momentsLabel(yy.count)}` : ''}"
+				onclick={() => app.goTo(yy.y - app.scope.from)}
+			>{#if yy.count && (yearParts[i]?.width ?? 0) >= 60}<span class="dot" aria-hidden="true"></span>{/if}{yearLabel(yy.y, yy.age, yy.count, yearParts[i]?.width ?? 0)}</button>
+		{/each}
+	</div>
+{/if}
+
 <div bind:clientWidth={screen} class="scroll" bind:this={scroller}>
 	<div
 		bind:this={wrapEl}
@@ -236,6 +267,7 @@
 		class:compact
 		class:focusing={!!focus}
 		style:--head="{HEAD}px"
+		style:--numrow="{ROWH}px"
 		role="group"
 		aria-label="Het jaar {y}, maand voor maand"
 		onpointermove={onmove}
@@ -270,7 +302,7 @@
 				{#if day === i + 1}
 					<div class="daylbl" style:left="{box.left}px" style:width="{box.width}px">
 						<button class="stp" aria-label="Vorige dag" onclick={() => stepDay(-1)}><Icon name="back" /></button>
-						<button class="dn" aria-expanded="true" aria-label="{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} {i + 1} {MONTHS[sp.m]}, terug naar heel {MONTHS[sp.m]}" onclick={() => (day = null)}>{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} <b>{i + 1}</b></button>
+						<button class="dn" aria-expanded="true" aria-label="{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} {i + 1} {MONTHS[sp.m]}, terug naar heel {MONTHS[sp.m]}" onclick={() => (day = null)}><b>{i + 1}</b> {WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]}</button>
 						<button class="stp" aria-label="Volgende dag" onclick={() => stepDay(1)}><Icon name="next" /></button>
 					</div>
 					<div class="dayv" style:left="{box.left}px" style:width="{box.width}px">
@@ -292,7 +324,7 @@
 							if (pinned !== sp.m) pin(sp.m);
 							openDay(i + 1);
 						}}
-					><span>{box.width >= 60 ? `${WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} ${i + 1}` : box.width >= 20 || i % 2 === 0 ? i + 1 : ""}</span></button>
+					><span>{dayLabel(y, sp.m, i + 1, box.width)}</span></button>
 				{/if}
 			{/each}
 		{/if}
@@ -320,6 +352,13 @@
 </div>
 
 <style>
+	.years { display: flex; height: var(--numrow); border-bottom: 1px solid var(--line); overflow: hidden; }
+	.yr { position: relative; flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 2px; border: none; border-right: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+		background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color 0.15s, color 0.15s; }
+	.yr.now { color: var(--ink); }
+	.yr.here { background: var(--ink); color: var(--bg); font-weight: 800; cursor: default; }
+	.yr .dot { flex: 0 0 auto; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.55; }
+	@media (hover: hover) { .yr:not(.here):hover { background: var(--hover); color: var(--ink); } }
 	.scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, on top a bar in the colour of its season, the only colour here. */
@@ -328,8 +367,6 @@
 	.col.pointed { background-color: var(--hover); }
 	.col.open:not(.days) { background: repeating-linear-gradient(to right, transparent 0 calc(var(--day) - 1px), color-mix(in srgb, var(--line) 70%, transparent) calc(var(--day) - 1px) var(--day)); }
 	/* The colour is only on the band with the month's name; the days below it have none. */
-	.wrap { --numrow: 28px; }
-	.wrap.compact { --numrow: 19px; }
 	.month { --bar: color-mix(in srgb, var(--s) 55%, var(--bg)); position: absolute; top: 0; height: var(--head); padding: 0; border: none; border-radius: 0;
 		background: linear-gradient(to bottom, var(--bar) 0 calc(100% - var(--numrow)), transparent calc(100% - var(--numrow)));
 		box-shadow: inset -1px 0 0 color-mix(in srgb, var(--bg) 60%, transparent), inset 0 -1px 0 var(--line);
@@ -344,16 +381,16 @@
 	.nums span.we { color: var(--ink); }
 	@keyframes fade { from { opacity: 0; } }
 	/* In a month over the full width, each day is a column you can zoom into. */
-	.dayc { position: absolute; top: calc(var(--head) - 28px); bottom: 0; z-index: 1; padding: 0; border: none; border-radius: 0; background: transparent; font: inherit; color: color-mix(in srgb, var(--ink) 65%, transparent); cursor: zoom-in; transition: left var(--ease), width var(--ease), background-color 0.15s; }
+	.dayc { position: absolute; top: calc(var(--head) - var(--numrow)); bottom: 0; z-index: 1; padding: 0; border: none; border-radius: 0; background: transparent; font: inherit; color: color-mix(in srgb, var(--ink) 65%, transparent); cursor: zoom-in; transition: left var(--ease), width var(--ease), background-color 0.15s; }
 	.dayc.thin span { display: none; }
 	.dayc { border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 	.dayc.thin { border-left-color: color-mix(in srgb, var(--line) 35%, transparent); }
 	.dayc.pointed { background: var(--hover); }
 	.dayc.pointed span { color: var(--ink); }
-	.dayc.thin.busy::after { content: ''; position: absolute; top: 13px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 70%, transparent); }
+	.dayc.thin.busy::after { content: ''; position: absolute; top: calc(var(--numrow) / 2 - 2px); left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 70%, transparent); }
 	/* The day zoomed into, as wide as the month less a thin strip for each other day. */
 	/* Above the day zoomed into, its date stays in the bar, with the name of the day before it. */
-	.daylbl { position: absolute; z-index: 4; top: calc(var(--head) - 30px); height: 30px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; transition: left var(--ease), width var(--ease); }
+	.daylbl { position: absolute; z-index: 4; top: calc(var(--head) - var(--numrow)); height: var(--numrow); display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; transition: left var(--ease), width var(--ease); }
 	/* The day zoomed into, like a month over the full width: click it again to fold it back. */
 	.daylbl .dn { min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 2px 10px; border: none; border-radius: 999px; background: transparent; font: inherit; color: inherit; cursor: zoom-out; transition: background-color 0.15s; }
 	@media (hover: hover) { .daylbl .dn:hover { background: var(--hover); } }
@@ -362,7 +399,7 @@
 	@media (hover: hover) { .stp:hover { background: var(--bg); } }
 	.daylbl b { font-weight: 800; font-variant-numeric: tabular-nums; }
 	.dayv { position: absolute; top: var(--head); bottom: 0; z-index: 3; overflow: hidden; transition: left var(--ease), width var(--ease); }
-	.dayc span { position: absolute; top: 4px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.dayc span { position: absolute; top: 0; left: 0; right: 0; height: var(--numrow); line-height: var(--numrow); text-align: center; white-space: nowrap; overflow: hidden; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.dayc.we span { color: var(--ink); }
 	@media (hover: hover) { .dayc:hover { background: var(--hover); } .dayc:hover span { color: var(--ink); } }
 	.today { position: absolute; top: var(--head); bottom: 0; width: 0; border-left: 2px solid var(--ink); margin-left: -1px; z-index: 1; pointer-events: none; transition: left var(--ease); }
