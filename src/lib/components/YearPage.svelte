@@ -6,6 +6,8 @@
 	import { isOverdue, yearOccurrences } from '$lib/domain/occurrences';
 	import { momentsLabel } from '$lib/domain/view';
 	import MonthTabs from './MonthTabs.svelte';
+	import Photo from './Photo.svelte';
+	import type { GalleryItem } from '$lib/state/ui.svelte';
 	import YearLines from './YearLines.svelte';
 
 	let { y }: { y: number } = $props();
@@ -15,6 +17,7 @@
 	const occs = $derived(yearOccurrences(app.visible, y));
 	const real = $derived(occs.filter((o) => !o.moment.virtual));
 	const line = $derived(yearLine(app.tl, y));
+	const photos = $derived<GalleryItem[]>(real.flatMap((o) => o.moment.photos.map((path) => ({ path, o }))));
 	const stats = $derived(
 		app.kind.hasStatus && real.length
 			? [
@@ -25,6 +28,8 @@
 	);
 </script>
 
+<!-- With the Jaarlijn: the year on top, its photos in between, the line on the lower half. -->
+<div class="yp" class:lijn={app.yearView === 'lijn'}>
 <div class="page-in" class:tabs={app.yearView === 'maanden'}>
 	<h2 class="big" class:now={y === app.now.y} style:view-transition-name={morphs ? 'pres-year' : null}>{y}</h2>
 	<div class="info" style:view-transition-name={morphs ? 'pres-info' : null}>
@@ -44,14 +49,30 @@
 </div>
 <!-- The Jaarlijn sits outside the page column, so it spans the page from edge to edge. -->
 {#if app.yearView === 'lijn'}
-	<div class="lines" style:view-transition-name={morphs ? 'pres-months' : null}><YearLines {y} {occs} /></div>
+	<div class="photos" role="group" aria-label="Foto's uit {y}">
+		{#each photos as p, i (p.path + i)}
+			<button class="ph" aria-label="{p.o.moment.title}, foto bekijken" onclick={() => (ui.gallery = { list: photos, i, canEdit: app.canEdit })}>
+				<Photo path={p.path} alt={p.o.moment.title} />
+			</button>
+		{/each}
+	</div>
+	<div class="lines" style:view-transition-name={morphs ? 'pres-months' : null}><YearLines {y} {occs} half /></div>
 {/if}
+</div>
 
 <style>
 	/* Room at the bottom for the add button, below the month tabs; the Jaarlijn fills the screen itself. */
 	.page-in { max-width: 860px; margin: 0 auto; padding: 18px 24px 0; }
 	.page-in.tabs { padding-bottom: 120px; }
-	.lines { margin-top: 4px; }
+	.yp.lijn { min-height: 100%; display: flex; flex-direction: column; }
+	.yp.lijn .page-in { width: 100%; }
+	/* The photos take the room between the year and the line, in one row that scrolls sideways. */
+	.photos { flex: 1 1 0; min-height: 0; display: flex; gap: 10px; align-items: stretch; overflow-x: auto; overflow-y: hidden; padding: 2vh 24px; scrollbar-width: none; }
+	.photos::-webkit-scrollbar { display: none; }
+	.ph { flex: 0 0 auto; height: 100%; max-height: 360px; aspect-ratio: 4 / 3; padding: 0; border: none; border-radius: 10px; overflow: hidden; background: var(--line); cursor: zoom-in; transition: filter 0.15s, transform 0.2s; }
+	.ph :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; }
+	@media (hover: hover) { .ph:hover { filter: var(--hover-filter); } }
+	.lines { flex: 0 0 auto; }
 	.big { margin: 0; font-size: clamp(84px, 20vw, 168px); font-weight: 800; letter-spacing: -0.055em; line-height: 0.85; }
 	.big.now { color: var(--accent); }
 	.count { color: var(--muted); font-size: 15px; margin: 10px 0 18px; }
@@ -62,10 +83,12 @@
 	.tip { font-size: 12px; color: var(--muted); margin: 0 0 20px; }
 	@media (max-width: 640px) {
 		.page-in { padding: 14px 14px 0; }
+		.photos { padding: 12px 14px; }
 		.page-in.tabs { padding-bottom: 110px; }
 	}
 	@media (min-width: 1200px) {
 		.page-in { max-width: none; padding: 3vh 3vw 0; }
+		.photos { padding: 2vh 3vw; }
 		.page-in.tabs { padding-bottom: 120px; }
 		/* Year and its line side by side, then the months across the full width. */
 		.page-in { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'year info' 'acc acc'; gap: 0 3vw; align-items: end; }

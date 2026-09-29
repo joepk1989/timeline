@@ -18,7 +18,8 @@
 		focus = null,
 		openMonth = null,
 		onpick,
-		height: fixed = null
+		height: fixed = null,
+		half = false
 	}: {
 		y: number;
 		occs: Occurrence[];
@@ -32,6 +33,8 @@
 		onpick?: (o: Occurrence) => void;
 		/** A fixed height in px: the rows squeeze together to fit it. */
 		height?: number | null;
+		/** Take the lower half of the screen, instead of all the height below the line's top. */
+		half?: boolean;
 	} = $props();
 
 	const HEAD = $derived(compact ? 44 : 52); // month names and, for an open month, its day numbers
@@ -40,9 +43,7 @@
 	let win = $state(0);
 	// The line spans its container, which the page makes as wide as the screen (less any scroll bar).
 	let screen = $state(0);
-	// A small margin on both sides, so the first and last days do not touch the screen's edge.
-	const edge = $derived(win > 640 ? 16 : 8);
-	const vw = $derived(Math.max(0, screen - 2 * edge));
+	const vw = $derived(screen);
 	let vh = $state(0);
 	let wrapEl = $state<HTMLDivElement>();
 	let scroller = $state<HTMLDivElement>();
@@ -90,13 +91,13 @@
 	const height = $derived(fixed ?? Math.max(fill, HEAD + 10 + Math.max(compact ? 1 : 3, blocks.rows) * ROW + 10));
 	const todayDoy = $derived(app.now.y === y ? dayOfYear(y, app.now.m, app.now.d) : null);
 
-	// Fill the screen below the line's top edge.
+	// Fill the screen below the line's top edge, or its lower half.
 	$effect(() => {
 		void [vh, win];
 		const section = wrapEl?.closest('section');
 		if (!wrapEl || !section) return;
 		const top = wrapEl.getBoundingClientRect().top - section.getBoundingClientRect().top + section.scrollTop;
-		fill = Math.round(Math.max(260, section.clientHeight - top - 16));
+		fill = Math.round(Math.max(260, half ? section.clientHeight / 2 : section.clientHeight - top));
 	});
 
 	// On a narrow screen, start at today.
@@ -193,10 +194,7 @@
 </div>
 
 <style>
-	/* Breaks out of the page column to the full width of the screen. */
-	/* The same margin as `edge` in the script. */
-	.scroll { overflow-x: auto; overflow-y: hidden; padding: 0 16px; scrollbar-width: thin; }
-	@media (max-width: 640px) { .scroll { padding: 0 8px; } }
+	.scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, a header with its name on a season-coloured edge. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
