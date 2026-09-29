@@ -14,7 +14,7 @@
 
 	const LANE = 20; // px per lane
 	const SEG = 14; // px a moment is high
-	const LABEL = 28; // px per upright name
+	const LABEL = 44; // px per upright name: two lines, the name and its dates
 	const TOP = 50; // month names and, for an open month, its day numbers
 	const GAP = 28; // room for the joining lines
 
@@ -31,7 +31,8 @@
 	const open = $derived(pinned ?? hover);
 	const width = $derived(vw);
 	const lines = $derived(yearLines(occs, y));
-	const full = $derived(pinned != null ? width : Math.max(width, (lines.days || 365) * 2));
+	// Wide enough for every name side by side, and at least 2px a day.
+	const full = $derived(pinned != null ? width : Math.max(width, (lines.days || 365) * 2, lines.items.length * LABEL * 1.5));
 	// A pinned month takes the width but for a thin strip per other month. A month pointed at gets a
 	// third of the line, more on a narrow screen, but always fits on the screen.
 	const strip = $derived(vw > 640 ? 16 : 8);
@@ -164,7 +165,7 @@
 					onblur={() => (hot = null)}
 					onclick={() => openMoment(it.o)}
 				>
-					<span class="e">{it.o.moment.emoji}</span><span class="t">{it.o.moment.title}</span><span class="d">{whenLabel(it.o)}</span>
+					<span class="l1"><span class="e">{it.o.moment.emoji}</span><span class="t">{it.o.moment.title}</span></span><span class="d">{whenLabel(it.o)}</span>
 				</button>
 				{/if}
 			{/each}
@@ -198,13 +199,16 @@
 	.links { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; z-index: 1; }
 	.links path { fill: none; stroke: color-mix(in srgb, var(--c) 60%, var(--line)); stroke-width: 1; transition: d var(--ease), stroke 0.15s; }
 	.links path.hot { stroke: var(--ink); stroke-width: 1.5; }
-	/* The name stands upright, reading top to bottom, right beside its line. */
-	.label { position: absolute; top: var(--labels); width: 28px; max-height: var(--names); writing-mode: vertical-rl; display: flex; align-items: center; gap: 7px; padding: 6px 0 10px;
+	/* The label stands upright, reading top to bottom, right beside its line. */
+	.label { position: absolute; top: var(--labels); width: 44px; max-height: var(--names); writing-mode: vertical-rl; display: block; padding: 14px 3px 10px; text-align: start;
 		border: none; border-radius: 6px; background: transparent; font: inherit; color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; z-index: 2; transition: left var(--ease), background-color 0.15s; }
-	.label .e { font-size: 17px; }
-	.label .t { font-size: 17px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-height: 0; }
-	.label .d { font-size: 14px; color: var(--muted); flex: 0 0 auto; }
-	.label::before { content: ''; height: 5px; align-self: stretch; margin: 0 7px; border-radius: 2px; background: var(--c); flex: 0 0 auto; }
+	/* Two lines, read top to bottom: the icon and name, then the dates under the name. */
+	.label .l1, .label .d { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.label .l1 { font-size: 17px; line-height: 22px; }
+	.label .e { margin-inline-end: 5px; }
+	.label .t { font-weight: 600; }
+	.label .d { font-size: 14px; line-height: 17px; color: var(--muted); padding-inline-start: 27px; }
+	.label::before { content: ''; position: absolute; top: 0; left: 8px; right: 8px; height: 5px; border-radius: 2px; background: var(--c); }
 	.label.hot { background: var(--hover); }
 	@media (prefers-reduced-motion: reduce) {
 		.wrap { --ease: 0s linear; }
