@@ -184,7 +184,8 @@
 		if (dm == null) return null;
 		const sp = spans[dm];
 		if (wide && day != null) return partSpans(sp.width, sp.days, day - 1, 1 - ((sp.days - 1) * dstrip) / sp.width);
-		const open = day ?? dayHover;
+		// Only in a month over the full width does the day pointed at widen; in a month pointed at it just lights up.
+		const open = day ?? (pinned != null ? dayHover : null);
 		if (open == null) return partSpans(sp.width, sp.days);
 		return partSpans(sp.width, sp.days, open - 1, Math.min(0.3, Math.max(4 / sp.days, 110 / sp.width)));
 	});
@@ -279,7 +280,7 @@
 					<button
 						class="dayc"
 						class:we={[0, 6].includes(new Date(y, sp.m, i + 1).getDay())}
-						class:thin={box.width < 18}
+						class:thin={box.width < 12}
 						class:busy={busy(i)}
 						class:pointed={dayHover === i + 1 && day == null}
 						style:left="{box.left}px"
@@ -291,7 +292,7 @@
 							if (pinned !== sp.m) pin(sp.m);
 							openDay(i + 1);
 						}}
-					><span>{box.width >= 60 ? `${WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} ${i + 1}` : i + 1}</span></button>
+					><span>{box.width >= 60 ? `${WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} ${i + 1}` : box.width >= 20 || i % 2 === 0 ? i + 1 : ""}</span></button>
 				{/if}
 			{/each}
 		{/if}
