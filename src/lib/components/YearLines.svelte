@@ -67,10 +67,8 @@
 	// On a phone the year scrolls sideways: a month is at least 110px wide.
 	const full = $derived(pinned != null ? vw : Math.max(vw, 12 * 110));
 	const strip = $derived(vw > 640 ? 16 : 8);
-	// Zoomed into a day, the other months are gone altogether.
-	const share = $derived(
-		pinned != null ? (wide ? 1 : 1 - (11 * strip) / full) : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full
-	);
+	// A month over the full width, also with a day zoomed into, keeps the other months as thin strips.
+	const share = $derived(pinned != null ? 1 - (11 * strip) / full : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full);
 	const spans = $derived(monthSpans(y, full, open, share));
 	const x = (doy: number) => yearX(spans, doy);
 
@@ -221,7 +219,7 @@
 				{#if day === i + 1}
 					<div class="daylbl" style:left="{box.left}px" style:width="{box.width}px">
 						<button class="stp" aria-label="Vorige dag" onclick={() => stepDay(-1)}><Icon name="back" /></button>
-						<span class="dn">{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} <b>{i + 1}</b></span>
+						<button class="dn" aria-expanded="true" aria-label="{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} {i + 1} {MONTHS[sp.m]}, terug naar heel {MONTHS[sp.m]}" onclick={() => (day = null)}>{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} <b>{i + 1}</b></button>
 						<button class="stp" aria-label="Volgende dag" onclick={() => stepDay(1)}><Icon name="next" /></button>
 					</div>
 					<div class="dayv" style:left="{box.left}px" style:width="{box.width}px">
@@ -276,7 +274,8 @@
 	.month { --bar: color-mix(in srgb, var(--s) 55%, var(--bg)); position: absolute; top: 0; height: var(--head); padding: 0; border: none; border-radius: 0;
 		background: linear-gradient(to bottom, var(--bar) 0 calc(100% - var(--numrow)), transparent calc(100% - var(--numrow)));
 		box-shadow: inset -1px 0 0 color-mix(in srgb, var(--bg) 60%, transparent), inset 0 -1px 0 var(--line);
-		font: inherit; color: var(--ink); cursor: pointer; overflow: hidden; transition: left var(--ease), width var(--ease); }
+		font: inherit; color: var(--ink); cursor: zoom-in; overflow: hidden; transition: left var(--ease), width var(--ease); }
+	.month[aria-expanded='true'] { cursor: zoom-out; }
 	.month .name { position: absolute; left: 0; right: 0; top: calc((var(--head) - var(--numrow)) / 2 - 10px); text-align: center; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
 	.month.thin .name { display: none; }
 	.month .name b { font-weight: 800; font-variant-numeric: tabular-nums; margin-right: 2px; }
@@ -293,7 +292,9 @@
 	/* The day zoomed into, as wide as the month less a thin strip for each other day. */
 	/* Above the day zoomed into, its date stays in the bar, with the name of the day before it. */
 	.daylbl { position: absolute; z-index: 4; top: calc(var(--head) - 30px); height: 30px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; transition: left var(--ease), width var(--ease); }
-	.daylbl .dn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+	/* The day zoomed into, like a month over the full width: click it again to fold it back. */
+	.daylbl .dn { min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 2px 10px; border: none; border-radius: 999px; background: transparent; font: inherit; color: inherit; cursor: zoom-out; transition: background-color 0.15s; }
+	@media (hover: hover) { .daylbl .dn:hover { background: var(--hover); } }
 	.stp { flex: 0 0 auto; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: color-mix(in srgb, var(--bg) 55%, transparent); color: var(--ink); cursor: pointer; transition: background-color 0.15s; }
 	.stp :global(svg) { width: 14px; height: 14px; }
 	@media (hover: hover) { .stp:hover { background: var(--bg); } }
