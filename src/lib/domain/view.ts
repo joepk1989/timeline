@@ -247,3 +247,11 @@ export function packRows(boxes: { left: number; right: number }[], gap = 0): { r
 		});
 	return { rows, count: ends.length };
 }
+
+/** How high the sun stands at `hour` (0–24), from 0 at midnight to 1 at noon: the arc over the day view. */
+export const sunHeight = (hour: number): number => (1 - Math.cos((2 * Math.PI * hour) / 24)) / 2;
+
+/** What is on one day: moments on or around it, and month-long ones that month. */
+export function dayMoments(occs: Occurrence[], y: number, m: number, d: number): Occurrence[] {
+	return occs.filter((o) => covers(o, y, m, d) || (o.y === y && o.m === m && o.d == null && !o.end));
+}

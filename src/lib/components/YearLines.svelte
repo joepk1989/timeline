@@ -10,6 +10,7 @@
 	import { whenLabel } from '$lib/domain/occurrences';
 	import { dayOfYear, monthSpans, packRows, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
+	import DayLine from './DayLine.svelte';
 
 	let {
 		y,
@@ -122,7 +123,21 @@
 		clearTimeout(timer);
 		hover = null;
 		pinned = m;
+		day = null;
 		scroller?.scrollTo({ left: 0 });
+	}
+	// In a month over the full width, a click on a day zooms in once more, onto that day.
+	let day = $state<number | null>(null);
+	function stepDay(delta: number) {
+		if (pinned == null || day == null) return;
+		const t = new Date(y, pinned, day + delta);
+		if (t.getFullYear() !== y) return;
+		pinned = t.getMonth();
+		day = t.getDate();
+	}
+	function back() {
+		if (day != null) day = null;
+		else pin(null);
 	}
 
 	const color = (o: Occurrence) => (o.moment.virtual ? 'var(--accent)' : app.catOf(o.moment.categoryId).color);
@@ -132,7 +147,7 @@
 	}
 </script>
 
-<svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
+<svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && back()} />
 
 <div bind:clientWidth={screen} class="scroll" bind:this={scroller}>
 	<div
@@ -147,6 +162,9 @@
 		aria-label="Het jaar {y}, maand voor maand"
 		onpointerleave={(e) => point(null, e)}
 	>
+		{#if pinned != null && day != null}
+			<DayLine {y} m={pinned} d={day} {occs} onback={() => (day = null)} onstep={stepDay} onopen={(o) => (onpick ? onpick(o) : openMoment(o))} />
+		{:else}
 		{#each spans as sp (sp.m)}
 			<div class="col" class:open={open === sp.m} style:left="{sp.left}px" style:width="{sp.width}px" style:--s="var(--{season(sp.m)})" style:--day="{sp.width / sp.days}px" aria-hidden="true"></div>
 			<button
@@ -162,13 +180,26 @@
 				onclick={() => pin(pinned === sp.m ? null : sp.m)}
 			>
 				<span class="name">{MONTHS[sp.m]}</span>
-				{#if open === sp.m}
+				{#if open === sp.m && pinned !== sp.m}
 					<span class="nums" aria-hidden="true">
 						{#each { length: sp.days } as _, d (d)}<span class:we={[0, 6].includes(new Date(y, sp.m, d + 1).getDay())}>{sp.width / sp.days >= 15 || d % 2 === 0 ? d + 1 : ''}</span>{/each}
 					</span>
 				{/if}
 			</button>
 		{/each}
+		{#if pinned != null && !compact}
+			{@const sp = spans[pinned]}
+			{#each { length: sp.days } as _, i (i)}
+				<button
+					class="dayc"
+					class:we={[0, 6].includes(new Date(y, sp.m, i + 1).getDay())}
+					style:left="{sp.left + (i * sp.width) / sp.days}px"
+					style:width="{sp.width / sp.days}px"
+					aria-label="{i + 1} {MONTHS[sp.m]} bekijken"
+					onclick={() => (day = i + 1)}
+				><span>{i + 1}</span></button>
+			{/each}
+		{/if}
 		{#if todayDoy != null}<div class="today" style:left="{x(todayDoy + 0.5)}px" aria-hidden="true"></div>{/if}
 
 		{#each blocks.list as b, i (b.it.o.moment.id + i)}
@@ -190,6 +221,7 @@
 				</button>
 			{/if}
 		{/each}
+		{/if}
 	</div>
 </div>
 
@@ -208,6 +240,11 @@
 	.nums span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 	.nums span.we { color: var(--ink); }
 	@keyframes fade { from { opacity: 0; } }
+	/* In a month over the full width, each day is a column you can zoom into. */
+	.dayc { position: absolute; top: 26px; bottom: 0; z-index: 1; padding: 0; border: none; border-radius: 0; background: transparent; font: inherit; color: var(--muted); cursor: zoom-in; transition: background-color 0.15s; }
+	.dayc span { position: absolute; top: 2px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+	.dayc.we span { color: var(--ink); }
+	@media (hover: hover) { .dayc:hover { background: var(--hover); } .dayc:hover span { color: var(--ink); } }
 	.today { position: absolute; top: var(--head); bottom: 0; width: 0; border-left: 2px solid var(--accent); margin-left: -1px; z-index: 1; pointer-events: none; transition: left var(--ease); }
 	/* A moment: a block lying on its days, the days themselves marked along its top. */
 	.block { position: absolute; z-index: 2; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 4px 12px 0 12px; border: none; border-radius: 21px;

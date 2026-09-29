@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { dayOfYear, monthSpans, packRows, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { dayMoments, dayOfYear, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -113,5 +113,25 @@ describe('packRows', () => {
 		expect(rows).toEqual([1, 0, 2, 0]); // 195 is too close to 190 on row 0, and to 200 on row 1
 		expect(count).toBe(3);
 		expect(packRows([]).count).toBe(0);
+	});
+});
+
+describe('the day view', () => {
+	it('lets the sun rise from midnight to noon and set again', () => {
+		expect(sunHeight(0)).toBeCloseTo(0);
+		expect(sunHeight(12)).toBeCloseTo(1);
+		expect(sunHeight(6)).toBeCloseTo(0.5);
+		expect(sunHeight(24)).toBeCloseTo(0);
+	});
+	it('finds what is on a day: days, periods around it and the whole month', () => {
+		const occs = [
+			{ y: 2027, m: 6, d: 9, end: null },
+			{ y: 2027, m: 6, d: 7, end: { y: 2027, m: 6, d: 10 } },
+			{ y: 2027, m: 6, d: null, end: null },
+			{ y: 2027, m: 6, d: 12, end: null },
+			{ y: 2027, m: null, d: null, end: null }
+		].map((o, i) => ({ ...o, moment: { id: String(i) } })) as unknown as Parameters<typeof dayMoments>[0];
+		expect(dayMoments(occs, 2027, 6, 9).map((o) => o.moment.id)).toEqual(['0', '1', '2']);
+		expect(dayMoments(occs, 2027, 7, 9)).toEqual([]);
 	});
 });
