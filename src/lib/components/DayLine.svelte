@@ -55,7 +55,6 @@
 <div class="day" style:--head="{HEAD}px" style:--sky="{SKY}px" bind:clientWidth={w} role="region" aria-label="{weekday} {d} {MONTHS[m]} {y}">
 	<header>
 		<button class="back" onclick={onback} aria-label="Terug naar {MONTHS[m]}"><Icon name="back" /><span>{MONTHS[m]}</span></button>
-		<h3><span class="wd">{weekday}</span> <b>{d} {MONTHS[m]}</b></h3>
 		<div class="steps">
 			<button onclick={() => onstep(-1)} aria-label="Vorige dag"><Icon name="back" /></button>
 			<button onclick={() => onstep(1)} aria-label="Volgende dag"><Icon name="next" /></button>
@@ -113,9 +112,7 @@
 	.day { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); animation: zoomin 0.35s ease both; }
 	@keyframes zoomin { from { opacity: 0; } }
 	/* Clear of the arrows at the screen's sides that go to the previous and next year. */
-	header { flex: 0 0 var(--head); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 80px; }
-	h3 { margin: 0; font-size: 20px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
-	h3 b { font-weight: 800; }
+	header { flex: 0 0 var(--head); display: grid; grid-template-columns: 1fr 1fr; align-items: center; padding: 0 80px; }
 	.back, .steps button { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; transition: background-color 0.15s; }
 	.back { justify-self: start; }
 	.steps { justify-self: end; display: flex; gap: 6px; }
@@ -160,8 +157,7 @@
 		.card:hover { filter: var(--hover-filter); }
 	}
 	@media (max-width: 640px) {
-		header { grid-template-columns: auto 1fr auto; gap: 8px; padding: 0 8px; }
-		h3 { font-size: 15px; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+		header { gap: 8px; padding: 0 8px; }
 		.back span { display: none; }
 		.lbl { font-size: 10px; }
 		.ttl { font-size: 18px; }

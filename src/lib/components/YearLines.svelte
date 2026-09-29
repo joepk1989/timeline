@@ -6,7 +6,7 @@
 	// compact: one line per block, the moment on show lit up and its month opened.
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { MONTHS, season } from '$lib/domain/dates';
+	import { MONTHS, WEEKDAYS, season } from '$lib/domain/dates';
 	import { whenLabel } from '$lib/domain/occurrences';
 	import { dayOfYear, monthSpans, packRows, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
@@ -203,6 +203,7 @@
 			{#each { length: sp.days } as _, i (i)}
 				{@const box = dayBox(i)}
 				{#if day === i + 1}
+					<div class="daylbl" style:left="{box.left}px" style:width="{box.width}px">{WEEKDAYS[new Date(y, sp.m, i + 1).getDay()]} <b>{i + 1}</b></div>
 					<div class="dayv" style:left="{box.left}px" style:width="{box.width}px">
 						{#key day}<DayLine {y} m={sp.m} d={day} {occs} onback={() => (day = null)} onstep={stepDay} onopen={(o) => (onpick ? onpick(o) : openMoment(o))} />{/key}
 					</div>
@@ -265,6 +266,9 @@
 	.dayc.thin span { display: none; }
 	.dayc.thin { border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 	/* The day zoomed into, as wide as the month less a thin strip for each other day. */
+	/* Above the day zoomed into, its date stays in the bar, with the name of the day before it. */
+	.daylbl { position: absolute; top: calc(var(--head) - 28px); height: 28px; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 14px; color: var(--ink); pointer-events: none; transition: left var(--ease), width var(--ease); }
+	.daylbl b { font-weight: 800; font-variant-numeric: tabular-nums; }
 	.dayv { position: absolute; top: var(--head); bottom: 0; z-index: 3; transition: left var(--ease), width var(--ease); }
 	.dayc span { position: absolute; top: 4px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.dayc.we span { color: var(--ink); }
