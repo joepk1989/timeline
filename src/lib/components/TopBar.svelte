@@ -15,6 +15,11 @@
 	let { theme, ontheme }: { theme: 'light' | 'dark'; ontheme: () => void } = $props();
 
 	let fullscreen = $state(false);
+	// On the Jaarlijn the bar keeps only its top row; the filters and the years fold away, and show
+	// as a panel over the page when pointed at or opened with the arrow.
+	const fold = $derived(app.mode === 'year' && app.yearView === 'lijn');
+	let open = $state(false);
+	$effect(() => { if (!fold) open = false; });
 	const canFullscreen = typeof document !== 'undefined' && document.fullscreenEnabled;
 	function toggleFullscreen() {
 		if (document.fullscreenElement) document.exitFullscreen();
@@ -66,7 +71,11 @@
 		{/if}
 		<Btn variant="pill" onclick={startPresenting} aria-label="Presenteren"><Icon name="play" /><span class="lbl">Presenteren</span></Btn>
 		<Btn variant="pill" onclick={() => (ui.menu = { y: app.year, m: app.mode === 'month' ? app.month : null })} aria-haspopup="dialog" aria-label="Menu"><Icon name="menu" /><span class="lbl">Menu</span></Btn>
+		{#if fold}
+			<button class="more-btn" class:open aria-expanded={open} aria-controls="bar-more" aria-label={open ? 'Filters en jaren verbergen' : 'Filters en jaren tonen'} onclick={() => (open = !open)}><Icon name="down" /></button>
+		{/if}
 	</div>
+	<div class="more" id="bar-more" class:fold class:open>
 	<div class="filters" role="group" aria-label="Filter op categorie">
 		<Chip on={!app.filter.categoryId} onclick={() => app.setCategory(null)}>Alles</Chip>
 		{#each app.tl.categories as c (c.id)}
@@ -97,10 +106,19 @@
 		{#if app.mode === 'year'}<span>{app.scope.from}</span><span>{app.scope.to}</span>
 		{:else}<span>{MONTHS_SHORT[0]} {app.year}</span><span>{MONTHS_SHORT[11]} {app.year}</span>{/if}
 	</div>
+	</div>
 </header>
 
 <style>
-	header { flex: 0 0 auto; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+	header { position: relative; flex: 0 0 auto; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+	.more.fold { position: absolute; left: 0; right: 0; top: 100%; padding-top: 8px; background: var(--bg); border-bottom: 1px solid var(--line); box-shadow: 0 12px 24px rgba(10, 20, 30, 0.08);
+		opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity 0.2s, transform 0.2s, visibility 0s 0.2s; }
+	.more.fold.open, .more.fold:has(:focus-visible) { opacity: 1; visibility: visible; transform: none; transition: opacity 0.2s, transform 0.2s; }
+	@media (hover: hover) { header:hover .more.fold { opacity: 1; visibility: visible; transform: none; transition: opacity 0.2s, transform 0.2s; } }
+	.more-btn { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, background-color 0.15s; }
+	.more-btn.open { transform: rotate(180deg); }
+	@media (hover: hover) { .more-btn:hover { background: var(--hover); } }
+	@media (prefers-reduced-motion: reduce) { .more.fold, .more-btn { transition: none; } }
 	.in { max-width: 1000px; margin: 0 auto; padding: 12px 20px 8px; display: flex; align-items: center; gap: 10px; }
 	.tl { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: none; background: transparent; text-align: left; padding: 4px 8px; margin-left: -8px; border-radius: 10px; font: inherit; color: inherit; cursor: pointer; }
 	.tl .em { font-size: 26px; line-height: 1; flex: 0 0 auto; }

@@ -41,7 +41,7 @@
 	// The line spans its container, which the page makes as wide as the screen (less any scroll bar).
 	let screen = $state(0);
 	// A small margin on both sides, so the first and last days do not touch the screen's edge.
-	const edge = $derived(screen > 640 ? 16 : 8);
+	const edge = $derived(win > 640 ? 16 : 8);
 	const vw = $derived(Math.max(0, screen - 2 * edge));
 	let vh = $state(0);
 	let wrapEl = $state<HTMLDivElement>();
@@ -133,7 +133,7 @@
 
 <svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && pin(null)} />
 
-<div bind:clientWidth={screen} style:--edge="{edge}px" class="scroll" bind:this={scroller}>
+<div bind:clientWidth={screen} class="scroll" bind:this={scroller}>
 	<div
 		bind:this={wrapEl}
 		class="wrap"
@@ -194,7 +194,9 @@
 
 <style>
 	/* Breaks out of the page column to the full width of the screen. */
-	.scroll { overflow-x: auto; overflow-y: hidden; padding: 0 var(--edge); scrollbar-width: thin; }
+	/* The same margin as `edge` in the script. */
+	.scroll { overflow-x: auto; overflow-y: hidden; padding: 0 16px; scrollbar-width: thin; }
+	@media (max-width: 640px) { .scroll { padding: 0 8px; } }
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, a header with its name on a season-coloured edge. */
 	.col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); transition: left var(--ease), width var(--ease); pointer-events: none; }
