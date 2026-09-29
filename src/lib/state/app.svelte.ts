@@ -48,7 +48,9 @@ class AppState {
 	idx = $state(0);
 	/** Bumped to ask the pager to scroll to `idx`. */
 	scrollReq = $state({ n: 0, smooth: false });
-	viewMode = $state<'list' | 'photos' | 'lines'>(((v) => (v === 'photos' || v === 'lines' ? v : 'list'))(store.get('view')));
+	viewMode = $state<'list' | 'photos'>(store.get('view') === 'photos' ? 'photos' : 'list');
+	/** How a year shows its months: as the Jaarlijn (365 lines) or as month tabs. */
+	yearView = $state<'lijn' | 'maanden'>(store.get('yearView') === 'maanden' ? 'maanden' : 'lijn');
 	monthView = $state<'cal' | 'row'>(store.get('monthview') === 'row' ? 'row' : 'cal');
 	toastMsg = $state<{ text: string; action?: ToastAction; id: number } | null>(null);
 
@@ -146,7 +148,8 @@ class AppState {
 
 	/* ---------- view settings ---------- */
 
-	setView(v: 'list' | 'photos' | 'lines') { this.viewMode = v; store.set('view', v); }
+	setView(v: 'list' | 'photos') { this.viewMode = v; store.set('view', v); }
+	setYearView(v: 'lijn' | 'maanden') { this.yearView = v; store.set('yearView', v); }
 	setMonthView(v: 'cal' | 'row') { this.monthView = v; store.set('monthview', v); }
 	setCategory(id: string | null) { this.filter.categoryId = id; }
 	setStatus(s: Status | null) { this.filter.status = this.filter.status === s ? null : s; }

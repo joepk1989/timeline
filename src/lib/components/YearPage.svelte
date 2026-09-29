@@ -7,6 +7,8 @@
 	import { momentsLabel } from '$lib/domain/view';
 	import Content from './Content.svelte';
 	import MonthTabs from './MonthTabs.svelte';
+	import Seg from './Seg.svelte';
+	import YearLines from './YearLines.svelte';
 
 	let { y }: { y: number } = $props();
 	// Only the page on screen takes part in the morph into presenting (names must be unique).
@@ -36,11 +38,16 @@
 		{/if}
 	</div>
 	<div class="acc">
-		<div style:view-transition-name={morphs ? 'pres-months' : null}><MonthTabs {y} {occs} /></div>
-		<p class="tip">{canHover ? 'Beweeg over de maanden om ze te bekijken, klik om er een te kiezen' : 'Tik op een maand om de dagen te zien'}</p>
+		<div class="yv"><Seg label="Het jaar als" value={app.yearView} onchange={(v) => app.setYearView(v)} options={[['lijn', 'Jaarlijn'], ['maanden', 'Maanden']]} /></div>
+		{#if app.yearView === 'lijn'}
+			<YearLines {y} {occs} />
+		{:else}
+			<div style:view-transition-name={morphs ? 'pres-months' : null}><MonthTabs {y} {occs} /></div>
+			<p class="tip">{canHover ? 'Beweeg over de maanden om ze te bekijken, klik om er een te kiezen' : 'Tik op een maand om de dagen te zien'}</p>
+		{/if}
 	</div>
-	<div class="list" class:wide={app.viewMode === 'lines'}>
-		<Content {occs} year={y} emptyTitle="Nog niets vastgelegd in {y}" emptySub="Maak het jaar, een maand of een dag bijzonder." onadd={() => (ui.menu = { y, m: null })} />
+	<div class="list">
+		<Content {occs} emptyTitle="Nog niets vastgelegd in {y}" emptySub="Maak het jaar, een maand of een dag bijzonder." onadd={() => (ui.menu = { y, m: null })} />
 	</div>
 </div>
 
@@ -53,6 +60,7 @@
 	.stsum { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: -8px 0 18px; font-size: 14px; }
 	.sst { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: var(--c); }
 	.sst::before { content: ''; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+	.yv { display: flex; margin: 0 0 12px; }
 	.tip { font-size: 12px; color: var(--muted); margin: 0 0 20px; }
 	@media (max-width: 640px) {
 		.page-in { padding: 14px 14px 110px; }
@@ -67,7 +75,6 @@
 		.stsum { margin: 0 0 8px; }
 		.acc { grid-area: acc; margin-top: 3vh; }
 		.list { grid-area: list; max-width: 1100px; padding-top: 1vh; }
-		.list.wide { max-width: none; }
 	}
 	@media (min-width: 2300px) and (min-height: 1250px) { .page-in { zoom: 1.25; } }
 	@media (min-width: 3200px) and (min-height: 1400px) { .page-in { zoom: 1.5; } }

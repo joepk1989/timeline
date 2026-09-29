@@ -8,21 +8,18 @@
 	import MomentRow from './MomentRow.svelte';
 	import Photo from './Photo.svelte';
 	import Seg from './Seg.svelte';
-	import YearLines from './YearLines.svelte';
 
-	let { occs, emptyTitle, emptySub, onadd, year }: { occs: Occurrence[]; emptyTitle: string; emptySub: string; onadd: () => void; /** On a year page: offers the year as lines too. */ year?: number } = $props();
-	const view = $derived(app.viewMode === 'lines' && year == null ? 'list' : app.viewMode);
+	let { occs, emptyTitle, emptySub, onadd }: { occs: Occurrence[]; emptyTitle: string; emptySub: string; onadd: () => void } = $props();
+	const view = $derived(app.viewMode);
 	const photos = $derived<GalleryItem[]>(occs.filter((o) => !o.moment.virtual).flatMap((o) => o.moment.photos.map((path) => ({ path, o }))));
 	const real = $derived(occs.filter((o) => !o.moment.virtual));
 </script>
 
 <div class="toggle">
-	<Seg label="Weergave" value={view} onchange={(v) => app.setView(v)} options={[['list', 'Momenten'], ['photos', `Foto's${photos.length ? ` (${photos.length})` : ''}`], ...(year != null ? [['lines', 'Jaarlijn'] as ['lines', string]] : [])]} />
+	<Seg label="Weergave" value={view} onchange={(v) => app.setView(v)} options={[['list', 'Momenten'], ['photos', `Foto's${photos.length ? ` (${photos.length})` : ''}`]]} />
 </div>
 
-{#if view === 'lines' && year != null}
-	<YearLines y={year} {occs} />
-{:else if view === 'photos'}
+{#if view === 'photos'}
 	{#if photos.length}
 		<div class="grid">
 			{#each photos as p, i (p.path + i)}
