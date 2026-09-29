@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { dayLabel, yearAge, yearLabel, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { yearPos, yearsSpans, dayLabel, yearAge, yearLabel, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -169,5 +169,23 @@ describe('labels for the rows of years and days', () => {
 		expect(yearLabel(2026, null, 0, 30)).toBe("'26");
 		expect(yearLabel(2026, null, 0, 20)).toBe('');
 		expect(yearLabel(2025, null, 0, 20)).toBe("'25");
+	});
+});
+
+describe('the line of all years', () => {
+	it('places days as years with a fraction', () => {
+		expect(yearPos({ y: 2026, m: 0, d: 1 })).toBe(2026);
+		expect(yearPos({ y: 2026, m: 6, d: 2 })).toBeCloseTo(2026.5, 2);
+	});
+	it('lists each moment once over the years, without generated or yearly ones', () => {
+		const long = occurrenceInYear({ ...base, id: 'l', date: '2026-12-30', end: '2027-01-02' }, 2026)!;
+		const long27 = occurrenceInYear({ ...base, id: 'l', date: '2026-12-30', end: '2027-01-02' }, 2027)!;
+		const yr = occurrenceInYear({ ...base, id: 'y', date: '2027' }, 2027)!;
+		const bday = occurrenceInYear({ ...base, id: 'b', date: '2020-05-01', repeat: true }, 2027)!;
+		const s = yearsSpans([[long], [long27, yr, bday]]);
+		expect(s.map((x) => x.o.moment.id)).toEqual(['l', 'y']);
+		expect(s[0].from).toBeCloseTo(2026 + 363 / 365, 6);
+		expect(s[0].to).toBeCloseTo(2027 + 2 / 365, 6);
+		expect(s[1]).toMatchObject({ from: 2027, to: 2028 });
 	});
 });

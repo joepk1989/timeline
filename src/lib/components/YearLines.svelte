@@ -8,7 +8,7 @@
 	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, MONTHS_SHORT, WEEKDAYS, season } from '$lib/domain/dates';
 	import { whenLabel, yearOccurrences } from '$lib/domain/occurrences';
-	import { dayLabel, yearAge, yearLabel, momentsLabel, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
+	import { yearPos, yearsSpans, dayLabel, yearAge, yearLabel, momentsLabel, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import DayLine from './DayLine.svelte';
 	import Icon from './Icon.svelte';
@@ -59,9 +59,36 @@
 	let screen = $state(0);
 	const vw = $derived(screen);
 	// The year on show gets room for its age and moments, as an open month does; the others share the rest.
+	// Zoomed out to all the years, they share the width alike.
 	const yearParts = $derived(
-		partSpans(screen, years.length, years.findIndex((yy) => yy.y === y), years.length > 1 ? Math.min(0.5, Math.max(1 / years.length, 240 / (screen || 1))) : 1)
+		ui.allYears
+			? partSpans(screen, years.length)
+			: partSpans(screen, years.length, years.findIndex((yy) => yy.y === y), years.length > 1 ? Math.min(0.5, Math.max(1 / years.length, 240 / (screen || 1))) : 1)
 	);
+	/** Where a moment of any year sits on the line of all years. */
+	const xAll = (t: number) => partX(yearParts, t - app.scope.from);
+	const allBlocks = $derived.by(() => {
+		if (!ui.allYears || compact) return { list: [], rows: 0 };
+		const spans = yearsSpans(years.map((yy) => yearOccurrences(app.visible, yy.y)));
+		const list = spans.map((s) => {
+			const from = xAll(s.from);
+			const days = Math.max(4, xAll(s.to) - from - 2);
+			const text = textWidth(`${s.o.moment.emoji} ${s.o.moment.title}`, '600 13px') + 28;
+			const w = Math.min(Math.max(days, Math.min(text, 220)), screen);
+			const left = Math.max(0, Math.min(from, screen - w));
+			return { o: s.o, from, days, left, w };
+		});
+		const { rows, count } = packRows(list.map((b) => ({ left: b.left, right: b.left + b.w })), GAP);
+		return { list: list.map((b, i) => ({ ...b, row: rows[i] })), rows: count };
+	});
+	let yearHover = $state<number | null>(null);
+	function pickYear(yy: number) {
+		if (yy === y && !ui.allYears) ui.allYears = true;
+		else {
+			ui.allYears = false;
+			app.goTo(yy - app.scope.from);
+		}
+	}
 	let wrapEl = $state<HTMLDivElement>();
 	let scroller = $state<HTMLDivElement>();
 	let hover = $state<number | null>(null);
@@ -255,7 +282,11 @@
 	}
 </script>
 
-<svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => pinned != null && e.key === 'Escape' && back()} />
+<svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => {
+		if (e.key !== 'Escape') return;
+		if (ui.allYears) ui.allYears = false;
+		else if (pinned != null) back();
+	}} />
 
 {#if !compact}
 	<!-- The years of the timeline, the same height as the months and days: click one to go there. -->
@@ -264,17 +295,62 @@
 			<button
 				class="yr"
 				style:width="{yearParts[i]?.width ?? 0}px"
-				class:here={yy.y === y}
+				class:here={yy.y === y && !ui.allYears}
+				class:all={ui.allYears}
+				class:pointed={ui.allYears && yearHover === yy.y}
 				class:now={yy.y === app.now.y}
-				aria-current={yy.y === y ? 'true' : undefined}
+				aria-current={yy.y === y && !ui.allYears ? 'true' : undefined}
+				aria-expanded={yy.y === y ? ui.allYears : undefined}
 				aria-label="{yy.y}{yy.age ? `, ${yy.age}` : ''}{yy.count ? `, ${momentsLabel(yy.count)}` : ''}"
 				title="{yy.y}{yy.age ? ` · ${yy.age}` : ''}{yy.count ? ` · ${momentsLabel(yy.count)}` : ''}"
-				onclick={() => app.goTo(yy.y - app.scope.from)}
+				onclick={() => pickYear(yy.y)}
 			>{#if yy.count && (yearParts[i]?.width ?? 0) >= 60}<span class="dot" aria-hidden="true"></span>{/if}{yearLabel(yy.y, yy.age, yy.count, yearParts[i]?.width ?? 0)}</button>
 		{/each}
 	</div>
 {/if}
 
+{#if ui.allYears && !compact}
+	<!-- Zoomed out: the years as columns, the moments of all of them on the line. A click on a year goes into it. -->
+	<div
+		bind:this={wrapEl}
+		bind:clientWidth={screen}
+		class="all"
+		style:height="{Math.max(fill, 16 + Math.max(3, allBlocks.rows) * 32)}px"
+		role="group"
+		aria-label="Alle jaren"
+		onpointerleave={() => (yearHover = null)}
+	>
+		{#each years as yy, i (yy.y)}
+			<button
+				class="ycol"
+				class:pointed={yearHover === yy.y}
+				style:left="{yearParts[i]?.left ?? 0}px"
+				style:width="{yearParts[i]?.width ?? 0}px"
+				aria-label="Naar {yy.y}"
+				onpointerenter={() => (yearHover = yy.y)}
+				onclick={() => pickYear(yy.y)}
+			></button>
+		{/each}
+		{#if app.now.y >= app.scope.from && app.now.y <= app.scope.to}
+			<div class="today" style:left="{xAll(yearPos(app.now))}px" style:top="0" aria-hidden="true"></div>
+		{/if}
+		{#each allBlocks.list as b, i (b.o.moment.id + i)}
+			<button
+				class="block one"
+				style:left="{b.left}px"
+				style:width="{b.w}px"
+				style:top="{10 + b.row * 32}px"
+				style:height="27px"
+				title="{b.o.moment.title} · {whenLabel(b.o)}{b.o.end && b.o.end.y !== b.o.y ? '' : ` ${b.o.y}`}"
+				onpointerenter={() => (yearHover = b.o.y)}
+				onclick={() => openMoment(b.o)}
+			>
+				<span class="days" style:left="{b.from - b.left}px" style:width="{b.days}px" aria-hidden="true"></span>
+				<span class="l1"><span class="e">{b.o.moment.emoji}</span> <span class="t">{b.o.moment.title}</span></span>
+			</button>
+		{/each}
+	</div>
+{:else}
 <div bind:clientWidth={screen} class="scroll" bind:this={scroller}>
 	<div
 		bind:this={wrapEl}
@@ -369,8 +445,17 @@
 		{/each}
 	</div>
 </div>
+{/if}
 
 <style>
+	/* All the years: a column each, the moments of all of them on top. */
+	.all { position: relative; overflow: hidden; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); animation: fade 0.3s both; }
+	.ycol { position: absolute; top: 0; bottom: 0; padding: 0; border: none; border-left: 1px solid var(--line); border-radius: 0; background: transparent; cursor: zoom-in; transition: background-color 0.15s; }
+	.ycol.pointed { background: var(--hover); }
+	.block.one { padding: 2px 10px 0; border-radius: 14px; }
+	.block.one .l1 { font-size: 13px; }
+	.yr.all { cursor: zoom-in; }
+	.yr.pointed { background: var(--hover); color: var(--ink); }
 	.years { display: flex; height: var(--numrow); border-bottom: 1px solid var(--line); overflow: hidden; }
 	.yr { position: relative; flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 2px; border: none; border-right: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
 		background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color 0.15s, color 0.15s; }

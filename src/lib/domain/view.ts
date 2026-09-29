@@ -309,3 +309,24 @@ export function yearLabel(y: number, age: string | null, count: number, room: nu
 	if (room >= 26 || (room >= 14 && y % 5 === 0)) return `'${String(y).slice(-2)}`;
 	return '';
 }
+
+/** A day as a year with a fraction, for a line of several years: 1 July 2026 is about 2026.5. */
+export const yearPos = (t: Day) => t.y + dayOfYear(t.y, t.m, t.d) / Math.round((Date.UTC(t.y + 1, 0, 1) - Date.UTC(t.y, 0, 1)) / 86_400_000);
+
+/**
+ * The moments of several years, for the line of all years: each once, from its first day to the day after
+ * its last, as years with a fraction. Generated moments and ones that come back every year are left out.
+ */
+export function yearsSpans(occsByYear: Occurrence[][]): { o: Occurrence; from: number; to: number }[] {
+	const seen = new Set<string>();
+	const out: { o: Occurrence; from: number; to: number }[] = [];
+	for (const occs of occsByYear)
+		for (const o of occs) {
+			if (o.moment.virtual || o.moment.repeat || seen.has(o.moment.id)) continue;
+			seen.add(o.moment.id);
+			const { from, to } = spanOf(o);
+			const next = new Date(Date.UTC(to.y, to.m, to.d + 1));
+			out.push({ o, from: yearPos(from), to: yearPos({ y: next.getUTCFullYear(), m: next.getUTCMonth(), d: next.getUTCDate() }) });
+		}
+	return out.sort((a, b) => a.from - b.from || b.to - a.to);
+}
