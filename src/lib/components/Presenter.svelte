@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Presenting: the year screen itself, full screen and without the bar. The year stays at the top,
-	// the moment on show fills the middle, and the months sit along the bottom with the moment's day marked.
+	// the moment on show fills the middle, and the year sits along the bottom as the year page shows it (the
+	// Jaarlijn with the moment lit up and its month open, or the month tabs with the moment's day marked).
 	import { onDestroy, onMount } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
 	import { stopPresenting } from '$lib/state/present';
@@ -11,9 +12,11 @@
 	import { covers, whenLabel, yearOccurrences } from '$lib/domain/occurrences';
 	import { momentSlides, type ShowWhat } from '$lib/domain/slides';
 	import { momentsLabel, relParts } from '$lib/domain/view';
+	import type { Occurrence } from '$lib/domain/types';
 	import Icon from './Icon.svelte';
 	import MonthTabs from './MonthTabs.svelte';
 	import Photo from './Photo.svelte';
+	import YearLines from './YearLines.svelte';
 
 	const KEY = 'tijdlijn.show';
 	let saved: Record<string, unknown> = {};
@@ -94,6 +97,10 @@
 		const n = slides.findIndex((x) => x.y === y && x.o.m === m);
 		if (n >= 0) goTo(n);
 		else app.toast(`Geen momenten in ${MONTHS[m]}`);
+	}
+	function jumpMoment(o: Occurrence) {
+		const n = slides.findIndex((x) => x.y === y && x.o.moment.id === o.moment.id);
+		if (n >= 0) goTo(n);
 	}
 	function jumpDay(m: number, d: number) {
 		const n = slides.findIndex((x) => x.y === y && covers(x.o, y, m, d));
@@ -207,7 +214,11 @@
 	</main>
 
 	<div class="months" style:view-transition-name="pres-months">
-		<MonthTabs {y} {occs} {focus} onmonth={jumpMonth} onday={jumpDay} />
+		{#if app.yearView === 'lijn'}
+			<YearLines {y} {occs} compact focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
+		{:else}
+			<MonthTabs {y} {occs} {focus} onmonth={jumpMonth} onday={jumpDay} />
+		{/if}
 	</div>
 </div>
 

@@ -40,7 +40,7 @@
 	<div class="acc">
 		<div class="yv"><Seg label="Het jaar als" value={app.yearView} onchange={(v) => app.setYearView(v)} options={[['lijn', 'Jaarlijn'], ['maanden', 'Maanden']]} /></div>
 		{#if app.yearView === 'lijn'}
-			<div class="lines"><YearLines {y} {occs} /></div>
+			<div class="lines" style:view-transition-name={morphs ? 'pres-months' : null}><YearLines {y} {occs} /></div>
 		{:else}
 			<div style:view-transition-name={morphs ? 'pres-months' : null}><MonthTabs {y} {occs} /></div>
 			<p class="tip">{canHover ? 'Beweeg over de maanden om ze te bekijken, klik om er een te kiezen' : 'Tik op een maand om de dagen te zien'}</p>

@@ -2,7 +2,8 @@
 	// The Jaarlijn: the year from edge to edge, the months as columns, each moment a block lying on its
 	// days with its icon and name, and its dates below. Blocks that would touch go on a row of their own.
 	// Point at a month and it opens up to a third of the width, with its days numbered; click or tap it
-	// and it takes the full width, the other months left as thin strips to jump to.
+	// and it takes the full width, the other months left as thin strips to jump to. When presenting it is
+	// compact: one line per block, the moment on show lit up and its month opened.
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, season } from '$lib/domain/dates';
@@ -10,11 +11,29 @@
 	import { dayOfYear, monthSpans, packRows, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 
-	let { y, occs }: { y: number; occs: Occurrence[] } = $props();
+	let {
+		y,
+		occs,
+		compact = false,
+		focus = null,
+		openMonth = null,
+		onpick
+	}: {
+		y: number;
+		occs: Occurrence[];
+		/** One line per block, for along the bottom of the presentation. */
+		compact?: boolean;
+		/** The moment on show: lit up, the others fade. */
+		focus?: string | null;
+		/** A month kept open, as if pointed at. */
+		openMonth?: number | null;
+		/** What a click on a block does, instead of opening the moment. */
+		onpick?: (o: Occurrence) => void;
+	} = $props();
 
-	const HEAD = 52; // month names and, for an open month, its day numbers
-	const ROW = 50; // px per row of blocks
-	const BLOCK = 42; // px a block is high
+	const HEAD = $derived(compact ? 44 : 52); // month names and, for an open month, its day numbers
+	const ROW = $derived(compact ? 32 : 50); // px per row of blocks
+	const BLOCK = $derived(compact ? 27 : 42); // px a block is high
 	const GAP = 6; // px between blocks on a row
 
 	let vw = $state(0);
@@ -24,7 +43,7 @@
 	let hover = $state<number | null>(null);
 	let pinned = $state<number | null>(null);
 	let fill = $state(0); // the height left on the screen, so the year fills it
-	const open = $derived(pinned ?? hover);
+	const open = $derived(pinned ?? openMonth ?? hover);
 	const lines = $derived(yearLines(occs, y));
 	// On a phone the year scrolls sideways: a month is at least 110px wide.
 	const full = $derived(pinned != null ? vw : Math.max(vw, 12 * 110));
@@ -47,8 +66,9 @@
 			const shown = pinned == null || (it.to >= spans[pinned].start && it.from < spans[pinned].start + spans[pinned].days);
 			const from = x(it.from);
 			const days = Math.max(4, x(it.to + 1) - from - 2);
-			const text = Math.max(textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, '600 14px'), textWidth(whenLabel(it.o), '12px') + 14) + 36;
-			const w = Math.min(Math.max(days, text), 280, full);
+			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? '600 13px' : '600 14px');
+			const text = (compact ? name : Math.max(name, textWidth(whenLabel(it.o), '12px') + 14)) + (compact ? 28 : 36);
+			const w = Math.min(Math.max(days, text), compact ? 220 : 280, full);
 			const left = Math.max(0, Math.min(from, full - w));
 			return { it, shown, from, days, left, w };
 		});
@@ -57,7 +77,7 @@
 		const row = new Map(shown.map((b, i) => [b, rows[i]]));
 		return { list: all.map((b) => ({ ...b, row: row.get(b) ?? 0 })), rows: count };
 	});
-	const height = $derived(Math.max(fill, HEAD + 12 + Math.max(3, blocks.rows) * ROW + 12));
+	const height = $derived(Math.max(fill, HEAD + 10 + Math.max(compact ? 1 : 3, blocks.rows) * ROW + 10));
 	const todayDoy = $derived(app.now.y === y ? dayOfYear(y, app.now.m, app.now.d) : null);
 
 	// Fill the screen below the line's top edge.
@@ -72,6 +92,12 @@
 	// On a narrow screen, start at today.
 	$effect(() => {
 		if (scroller && todayDoy != null && pinned == null && full > vw) scroller.scrollLeft = yearX(monthSpans(y, full), todayDoy + 0.5) - vw / 2;
+	});
+
+	// Keep the moment on show in view when the year scrolls sideways.
+	$effect(() => {
+		const b = focus && full > vw ? blocks.list.find((b) => b.it.o.moment.id === focus) : null;
+		if (b && scroller) scroller.scrollTo({ left: b.left + b.w / 2 - vw / 2, behavior: 'smooth' });
 	});
 
 	// Pointing opens a month after a short pause, so sweeping across the months stays calm.
@@ -103,6 +129,8 @@
 		class="wrap"
 		style:width="{full}px"
 		style:height="{height}px"
+		class:compact
+		class:focusing={!!focus}
 		style:--head="{HEAD}px"
 		role="group"
 		aria-label="Het jaar {y}, maand voor maand"
@@ -136,16 +164,18 @@
 			{#if b.shown}
 				<button
 					class="block"
+					class:on={focus === b.it.o.moment.id}
+					aria-current={focus === b.it.o.moment.id ? 'true' : undefined}
 					style:left="{b.left}px"
 					style:width="{b.w}px"
-					style:top="{HEAD + 12 + b.row * ROW}px"
+					style:top="{HEAD + 10 + b.row * ROW}px"
 					style:height="{BLOCK}px"
 					style:--c={color(b.it.o)}
-					onclick={() => openMoment(b.it.o)}
+					onclick={() => (onpick ? onpick(b.it.o) : openMoment(b.it.o))}
 				>
 					<span class="days" style:left="{b.from - b.left}px" style:width="{b.days}px" aria-hidden="true"></span>
 					<span class="l1"><span class="e">{b.it.o.moment.emoji}</span> <span class="t">{b.it.o.moment.title}</span></span>
-					<span class="l2"><span class="sq" aria-hidden="true"></span>{whenLabel(b.it.o)}</span>
+					{#if !compact}<span class="l2"><span class="sq" aria-hidden="true"></span>{whenLabel(b.it.o)}</span>{/if}
 				</button>
 			{/if}
 		{/each}
@@ -185,6 +215,13 @@
 		.block:hover { filter: var(--hover-filter); z-index: 3; }
 	}
 	.block:focus-visible { z-index: 3; }
+	/* Presenting: smaller, one line, the moment on show lit up and the rest faded. */
+	.compact .block { padding: 3px 10px 0; border-radius: 14px; }
+	.compact .block .l1 { font-size: 13px; }
+	.compact .month .name { top: 6px; font-size: 12px; }
+	.compact .nums { top: 25px; }
+	.focusing .block { opacity: 0.45; transition: left var(--ease), width var(--ease), top var(--ease), filter 0.15s, opacity 0.4s, box-shadow 0.4s; }
+	.focusing .block.on { opacity: 1; z-index: 3; box-shadow: 0 0 0 2px var(--c), 0 6px 18px rgba(10, 20, 30, 0.18); background: color-mix(in srgb, var(--c) 26%, var(--surface)); }
 	@media (prefers-reduced-motion: reduce) {
 		.wrap { --ease: 0s linear; }
 		.nums { animation: none; }
