@@ -216,7 +216,7 @@
 
 	<div class="months" class:edge={app.yearView === 'lijn'} style:view-transition-name="pres-months">
 		{#if app.yearView === 'lijn'}
-			<YearLines {y} {occs} compact height={Math.round(Math.max(170, vh * 0.26))} focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
+			<YearLines {y} {occs} compact height={Math.round(Math.max(200, vh * 0.38))} focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
 		{:else}
 			<MonthTabs {y} {occs} {focus} onmonth={jumpMonth} onday={jumpDay} />
 		{/if}

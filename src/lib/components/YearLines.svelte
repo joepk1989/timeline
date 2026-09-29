@@ -6,7 +6,7 @@
 	// compact: one line per block, the moment on show lit up and its month opened.
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { MONTHS, WEEKDAYS, season } from '$lib/domain/dates';
+	import { MONTHS, MONTHS_SHORT, WEEKDAYS, season } from '$lib/domain/dates';
 	import { whenLabel, yearOccurrences } from '$lib/domain/occurrences';
 	import { dayLabel, yearAge, yearLabel, momentsLabel, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
@@ -40,7 +40,10 @@
 	} = $props();
 
 	// Years, months and days each get a row of the same height: the months' names, then the days below.
-	const ROWH = $derived(compact ? 22 : 34);
+	let vh = $state(0);
+	// When presenting, everything in the line grows with the screen, to be read from across the room.
+	const K = $derived(compact ? Math.max(1.4, Math.min(2.6, vh / 520)) : 1);
+	const ROWH = $derived(compact ? Math.round(24 * K) : 34);
 	const HEAD = $derived(2 * ROWH);
 	// The row of years: how old in each, and how many moments.
 	const years = $derived(
@@ -59,7 +62,6 @@
 	const yearParts = $derived(
 		partSpans(screen, years.length, years.findIndex((yy) => yy.y === y), years.length > 1 ? Math.min(0.5, Math.max(1 / years.length, 240 / (screen || 1))) : 1)
 	);
-	let vh = $state(0);
 	let wrapEl = $state<HTMLDivElement>();
 	let scroller = $state<HTMLDivElement>();
 	let hover = $state<number | null>(null);
@@ -103,15 +105,16 @@
 		ctx.font = `${font} ${getComputedStyle(document.body).fontFamily}`;
 		return ctx.measureText(text).width;
 	}
-	const blocks = $derived.by(() => {
+	/** Lays the blocks out on rows, their names in `font` px (when presenting) so a block is as wide as its name. */
+	function layout(font: number) {
 		const all = lines.items.map((it) => {
 			const shown = day == null && (pinned == null || (it.to >= spans[pinned].start && it.from < spans[pinned].start + spans[pinned].days));
 			const from = x(it.from);
 			const days = Math.max(4, x(it.to + 1) - from - 2);
-			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? '600 12px' : '600 14px');
-			const text = (compact ? name : Math.max(name, textWidth(whenLabel(it.o), '12px') + 14)) + (compact ? 28 : 36);
+			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? `700 ${font}px` : '600 14px');
+			const text = (compact ? name : Math.max(name, textWidth(whenLabel(it.o), '12px') + 14)) + (compact ? 20 * K + 12 : 36);
 			// As wide as its days, and at least as wide as its name (up to a limit): a whole year spans the year.
-			const w = Math.min(Math.max(days, Math.min(text, compact ? 220 : 280)), full);
+			const w = Math.min(Math.max(days, Math.min(text, compact ? font * 18 : 280)), full);
 			const left = Math.max(0, Math.min(from, full - w));
 			return { it, shown, from, days, left, w };
 		});
@@ -119,11 +122,25 @@
 		const { rows, count } = packRows(shown.map((b) => ({ left: b.left, right: b.left + b.w })), GAP);
 		const row = new Map(shown.map((b, i) => [b, rows[i]]));
 		return { list: all.map((b) => ({ ...b, row: row.get(b) ?? 0 })), rows: count };
+	}
+	// With a fixed height the rows squeeze together to fit, and the names shrink with them (laid out once
+	// more at that size, so the blocks are as wide as the names they now carry).
+	const rowFor = (rows: number) => Math.min(compact ? 34 * K : 50, fixed ? (fixed - HEAD - 16) / Math.max(1, rows) : Infinity);
+	const FONT = $derived.by(() => {
+		if (!compact) return 14;
+		// Settle on a size: smaller names make narrower blocks, so fewer rows, so room for a larger size again.
+		let f = 13 * K, best = 10;
+		for (let i = 0; i < 4; i++) {
+			const fits = Math.max(10, Math.min(13 * K, (rowFor(layout(f).rows) - 4) * 0.5));
+			if (fits >= f - 0.5) { best = Math.max(best, f); break; }
+			best = Math.max(best, fits);
+			f = (f + fits) / 2;
+		}
+		return best;
 	});
-	// With a fixed height the rows squeeze together to fit.
-	const rowsFit = $derived(fixed ? (fixed - HEAD - 16) / Math.max(1, blocks.rows) : Infinity);
-	const ROW = $derived(Math.min(compact ? 32 : 50, rowsFit)); // px per row of blocks
-	const BLOCK = $derived(Math.max(14, Math.min(compact ? 27 : 42, ROW - 4))); // px a block is high
+	const blocks = $derived(layout(FONT));
+	const ROW = $derived(rowFor(blocks.rows)); // px per row of blocks
+	const BLOCK = $derived(Math.max(14, Math.min(compact ? 29 * K : 42, ROW - 4))); // px a block is high
 	const height = $derived(fixed ?? Math.max(fill, HEAD + 10 + Math.max(compact ? 1 : 3, blocks.rows) * ROW + 10));
 	const todayDoy = $derived(app.now.y === y ? dayOfYear(y, app.now.m, app.now.d) : null);
 
@@ -268,6 +285,8 @@
 		class:focusing={!!focus}
 		style:--head="{HEAD}px"
 		style:--numrow="{ROWH}px"
+		style:--k={K}
+		style:--fs="{FONT}px"
 		role="group"
 		aria-label="Het jaar {y}, maand voor maand"
 		onpointermove={onmove}
@@ -287,10 +306,10 @@
 				onpointerenter={(e) => point(sp.m, e)}
 				onclick={() => (pinned === sp.m && day != null ? (day = null) : pin(pinned === sp.m ? null : sp.m))}
 			>
-				<span class="name"><b>{String(sp.m + 1).padStart(2, '0')}</b> {MONTHS[sp.m]}</span>
+				<span class="name"><b>{String(sp.m + 1).padStart(2, '0')}</b> {compact && sp.width < 150 * K ? MONTHS_SHORT[sp.m] : MONTHS[sp.m]}</span>
 				{#if open === sp.m && dm !== sp.m}
 					<span class="nums" aria-hidden="true">
-						{#each { length: sp.days } as _, d (d)}<span class:we={[0, 6].includes(new Date(y, sp.m, d + 1).getDay())}>{sp.width / sp.days >= 15 || d % 2 === 0 ? d + 1 : ''}</span>{/each}
+						{#each { length: sp.days } as _, d (d)}<span class:we={[0, 6].includes(new Date(y, sp.m, d + 1).getDay())}>{sp.width / sp.days >= 15 * K || d % 2 === 0 ? d + 1 : ''}</span>{/each}
 					</span>
 				{/if}
 			</button>
@@ -420,9 +439,13 @@
 	}
 	.block:focus-visible { z-index: 3; }
 	/* Presenting: smaller, one line, the moment on show lit up and the rest faded. */
-	.compact .block { padding: 2px 10px 0; border-radius: 14px; }
-	.compact .block .l1 { font-size: 12px; line-height: 15px; }
-	.compact .month .name { font-size: 12px; }
+	.compact .block { padding: 2px calc(10px * var(--k)) 0; border-radius: calc(14px * var(--k)); }
+	.compact .block { justify-content: center; padding-top: 0; }
+	.compact .block .l1 { font-size: var(--fs); line-height: 1.15; }
+	.compact .block .days { height: calc(4px * var(--k)); }
+	.compact .month .name { font-size: calc(13px * var(--k)); top: calc((var(--head) - var(--numrow)) / 2 - 0.65em); }
+	.compact .nums span { font-size: calc(11px * var(--k)); }
+	.compact .nums { bottom: calc(var(--numrow) / 2 - 0.6em * var(--k)); }
 	.focusing .block { opacity: 0.45; transition: left var(--ease), width var(--ease), top var(--ease), filter 0.15s, opacity 0.4s, box-shadow 0.4s; }
 	.focusing .block.on { opacity: 1; z-index: 3; box-shadow: 0 0 0 2px var(--ink), 0 6px 18px rgba(10, 20, 30, 0.18); }
 	@media (prefers-reduced-motion: reduce) {
