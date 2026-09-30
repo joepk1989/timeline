@@ -5,6 +5,7 @@
 	// the time it is, and the hours gone by are shaded.
 	import { onDestroy } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
+	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, WEEKDAYS } from '$lib/domain/dates';
 	import { dayMoments, spanOf, sunHeight } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
@@ -58,7 +59,9 @@
 		{#if isToday}<span class="now" style:left="{x(nowH)}px">{nowLabel}</span>{/if}
 	</div>
 
-	<div class="body">
+	<!-- A double click on an empty spot of the day adds a moment to it. -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="body" ondblclick={(e) => app.canEdit && !(e.target as HTMLElement).closest('button') && (ui.editor = { id: null, y, m, d })}>
 		{#each { length: 23 } as _, i (i)}
 			<div class="hr" class:major={(i + 1) % 3 === 0} style:left="{x(i + 1)}px"></div>
 		{/each}
@@ -84,6 +87,10 @@
 			{:else}
 				<p class="empty">Niets op {weekday} {d} {MONTHS[m]}.</p>
 			{/each}
+			{#if app.canEdit}
+				<!-- Adding to this day: the date is filled in already. -->
+				<button class="add" onclick={() => (ui.editor = { id: null, y, m, d })}><Icon name="plus" />Moment op {d} {MONTHS[m]}</button>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -128,7 +135,11 @@
 	.meta { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.ph { flex: 0 0 auto; width: 72px; height: 50px; border-radius: 8px; overflow: hidden; }
 	.ph :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; }
-	.empty { margin: 28px auto; color: var(--muted); }
+	.empty { margin: 28px auto 4px; color: var(--muted); }
+	.add { flex: 0 0 auto; align-self: center; display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 10px 18px; border: 1px dashed color-mix(in srgb, var(--ink) 30%, transparent); border-radius: 999px;
+		background: transparent; font: inherit; font-weight: 700; font-size: 14px; color: var(--ink); cursor: pointer; transition: background-color 0.15s, border-color 0.15s; }
+	.add :global(svg) { width: 16px; height: 16px; }
+	@media (hover: hover) { .add:hover { background: var(--hover); border-color: var(--muted); } }
 	@media (hover: hover) { .bar:hover { filter: var(--hover-filter); } }
 	@media (max-width: 640px) {
 		.hl { font-size: 10px; }

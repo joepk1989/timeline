@@ -462,6 +462,31 @@
 				{/if}
 			{/each}
 		{/if}
+		{#if app.canEdit && !compact && day == null}
+			<!-- A plus to add a moment, on the month and the day the mouse is on. -->
+			{#if hover != null || pinned != null}
+				{@const sp = spans[pinned ?? hover!]}
+				<button
+					class="plus"
+					style:left="{sp.left + sp.width - 30}px"
+					style:top="{(HEAD - ROWH) / 2 - 12}px"
+					aria-label="Moment toevoegen in {MONTHS[sp.m]}"
+					title="Moment in {MONTHS[sp.m]}"
+					onclick={() => (ui.editor = { id: null, y, m: sp.m, d: null })}
+				><Icon name="plus" /></button>
+			{/if}
+			{#if dm != null && dayHover != null && dayParts}
+				{@const box = dayBox(dayHover - 1)}
+				<button
+					class="plus day"
+					style:left="{box.left + box.width / 2 - 12}px"
+					style:top="{height - 40}px"
+					aria-label="Moment toevoegen op {dayHover} {MONTHS[spans[dm].m]}"
+					title="Moment op {dayHover} {MONTHS[spans[dm].m]}"
+					onclick={() => (ui.editor = { id: null, y, m: spans[dm!].m, d: dayHover })}
+				><Icon name="plus" /></button>
+			{/if}
+		{/if}
 		{#if todayDoy != null && day == null}<div class="today" style:left="{x(todayDoy + 0.5)}px" aria-hidden="true"></div>{/if}
 
 		{#each blocks.list as b, i (b.it.o.moment.id + i)}
@@ -535,6 +560,11 @@
 	.stp :global(svg) { width: 14px; height: 14px; }
 	@media (hover: hover) { .stp:hover { background: var(--bg); } }
 	.daylbl b { font-weight: 800; font-variant-numeric: tabular-nums; }
+	/* The plus that adds a moment: small, round, only while the mouse is on its month or day. */
+	.plus { position: absolute; z-index: 5; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: var(--ink); color: var(--bg);
+		cursor: pointer; box-shadow: 0 2px 8px rgba(10, 20, 30, 0.2); animation: fade 0.15s both; transition: transform 0.15s, left var(--ease); }
+	.plus :global(svg) { width: 14px; height: 14px; }
+	@media (hover: hover) { .plus:hover { transform: scale(1.12); } }
 	.dayv { position: absolute; top: var(--head); bottom: 0; z-index: 3; overflow: hidden; transition: left var(--ease), width var(--ease); }
 	.dayc span { position: absolute; top: 0; left: 0; right: 0; height: var(--numrow); line-height: var(--numrow); text-align: center; white-space: nowrap; overflow: hidden; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.dayc.we span { color: var(--ink); }
