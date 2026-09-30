@@ -287,8 +287,8 @@ export function yearAge(tl: Timeline, y: number): string | null {
 	return `${n} jaar`;
 }
 
-/** A year in the row of years: two digits ('26); when its column is very narrow, only every fifth year. */
-export const yearShort = (y: number, room: number) => (room >= 20 || y % 5 === 0 ? `'${String(y).slice(-2)}` : '');
+/** A year in the row of years: two digits ('26); in narrow columns only every fifth year, in very narrow ones every tenth. */
+export const yearShort = (y: number, room: number) => (room >= 20 || (room >= 8 && y % 5 === 0) || y % 10 === 0 ? `'${String(y).slice(-2)}` : '');
 
 /** A day as a year with a fraction, for a line of several years: 1 July 2026 is about 2026.5. */
 export const yearPos = (t: Day) => t.y + dayOfYear(t.y, t.m, t.d) / Math.round((Date.UTC(t.y + 1, 0, 1) - Date.UTC(t.y, 0, 1)) / 86_400_000);
@@ -309,4 +309,21 @@ export function yearsSpans(occsByYear: Occurrence[][]): { o: Occurrence; from: n
 			out.push({ o, from: yearPos(from), to: yearPos({ y: next.getUTCFullYear(), m: next.getUTCMonth(), d: next.getUTCDate() }) });
 		}
 	return out.sort((a, b) => a.from - b.from || b.to - a.to);
+}
+
+/**
+ * Placeholder photos drifting through a year without photos: for each, a height in the band (0 to 1), a size,
+ * how long one crossing takes, where in it it starts, a tilt and a hue. The same year always drifts the same way.
+ */
+export function driftCards(n: number, seed: number): { top: number; size: number; secs: number; start: number; tilt: number; hue: number }[] {
+	let s = (seed * 2654435761) >>> 0;
+	const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+	return Array.from({ length: n }, (_, i) => ({
+		top: (i % 3) / 3 + rnd() * 0.2,
+		size: 0.55 + rnd() * 0.35,
+		secs: 26 + rnd() * 18,
+		start: (i + rnd() * 0.6) / n,
+		tilt: (rnd() - 0.5) * 14,
+		hue: Math.round(rnd() * 360)
+	}));
 }

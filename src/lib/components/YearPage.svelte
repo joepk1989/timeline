@@ -4,7 +4,7 @@
 		import { yearLine } from '$lib/domain/age';
 	import { STATUSES } from '$lib/domain/kinds';
 	import { isOverdue, yearOccurrences } from '$lib/domain/occurrences';
-	import { momentsLabel } from '$lib/domain/view';
+	import { driftCards, momentsLabel } from '$lib/domain/view';
 	import MonthTabs from './MonthTabs.svelte';
 	import Photo from './Photo.svelte';
 	import type { GalleryItem } from '$lib/state/ui.svelte';
@@ -18,6 +18,12 @@
 	const real = $derived(occs.filter((o) => !o.moment.virtual));
 	const line = $derived(yearLine(app.tl, y));
 	const photos = $derived<GalleryItem[]>(real.flatMap((o) => o.moment.photos.map((path) => ({ path, o }))));
+	// Placeholders for a year without photos: the icons of its moments, or a few cheerful ones.
+	const cards = $derived(driftCards(7, y));
+	const icons = $derived.by(() => {
+		const own = [...new Set(real.map((o) => o.moment.emoji).filter(Boolean))];
+		return own.length >= 3 ? own : [...own, '🌅', '🎈', '🌳', '🏖️', '🎉', '🚲', '☕'].slice(0, 7);
+	});
 	const stats = $derived(
 		app.kind.hasStatus && real.length
 			? [
@@ -51,6 +57,22 @@
 						<Photo path={p.path} alt={p.o.moment.title} />
 					</button>
 				{:else}
+					<!-- No photos yet: placeholder polaroids drift by, with the year's own icons. -->
+					<div class="drift" aria-hidden="true">
+						{#each cards as c, i (i)}
+							<button
+								class="card"
+								tabindex="-1"
+								style:--top={c.top}
+								style:--size={c.size}
+								style:--secs="{c.secs}s"
+								style:--start={c.start}
+								style:--tilt="{c.tilt}deg"
+								style:--hue={c.hue}
+								onclick={() => app.canEdit && (ui.editor = { id: null, y, m: null, d: null })}
+							><span class="pic">{icons[i % icons.length]}</span></button>
+						{/each}
+					</div>
 					<p class="nophoto">Nog geen foto's uit {y}.{app.canEdit ? ' Voeg ze toe bij een moment.' : ''}</p>
 				{/each}
 			</div>
@@ -76,9 +98,22 @@
 	.yr { flex: 0 0 auto; align-self: center; }
 	.yr .count { margin-bottom: 0; }
 	/* The photos fill the rest of the upper half, in one row that scrolls sideways. */
-	.photos { flex: 1 1 0; min-width: 0; display: flex; gap: 10px; align-items: center; overflow-x: auto; overflow-y: hidden; padding-right: 3vw; scrollbar-width: none; }
+	.photos { position: relative; container-type: size; flex: 1 1 0; min-width: 0; display: flex; gap: 10px; align-items: center; overflow-x: auto; overflow-y: hidden; padding-right: 3vw; scrollbar-width: none; }
 	.photos::-webkit-scrollbar { display: none; }
-	.nophoto { margin: 0; align-self: center; color: var(--muted); font-size: 15px; }
+	.nophoto { position: absolute; left: 0; bottom: 2px; margin: 0; color: var(--muted); font-size: 13px; pointer-events: none; }
+	/* Polaroids drifting from right to left, each at its own height, size, pace and tilt, bobbing gently. */
+	.drift { position: absolute; inset: 0; overflow: hidden; mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent); }
+	.card { position: absolute; left: 0; top: calc(var(--top) * 50%); height: min(calc(var(--size) * 52%), 200px); aspect-ratio: 4 / 5; padding: 0; border: none; border-radius: 4px;
+		background: var(--surface); box-shadow: 0 6px 18px rgba(10, 20, 30, 0.12); cursor: pointer;
+		animation: fly var(--secs) linear infinite, bob 5s ease-in-out infinite alternate; animation-delay: calc(var(--secs) * var(--start) * -1), calc(var(--start) * -5s); }
+	.pic { position: absolute; inset: 7% 7% 24%; display: grid; place-items: center; border-radius: 2px; font-size: clamp(20px, 3.4vh, 38px);
+		background: linear-gradient(145deg, hsl(var(--hue) 70% 86%), hsl(calc(var(--hue) + 40) 60% 76%)); }
+	@keyframes fly { from { translate: calc(100cqw + 20px) 0; } to { translate: -120% 0; } }
+	@keyframes bob { from { rotate: var(--tilt); transform: translateY(-4%); } to { rotate: calc(var(--tilt) * -0.6); transform: translateY(4%); } }
+	@media (hover: hover) { .card:hover { filter: var(--hover-filter); animation-play-state: paused; } }
+	@media (prefers-reduced-motion: reduce) {
+		.card { animation: none; translate: calc(var(--start) * 90cqw) 0; rotate: var(--tilt); }
+	}
 	.ph { flex: 0 0 auto; height: 100%; max-height: 420px; aspect-ratio: 4 / 3; padding: 0; border: none; border-radius: 10px; overflow: hidden; background: var(--line); cursor: zoom-in; transition: filter 0.15s, transform 0.2s; }
 	.ph :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; }
 	@media (hover: hover) { .ph:hover { filter: var(--hover-filter); } }

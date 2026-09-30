@@ -58,7 +58,7 @@
 <style>
 	.years { flex: 0 0 auto; display: flex; height: 34px; background: var(--bg); border-bottom: 1px solid var(--line); overflow: hidden; }
 	.yr { position: relative; flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 2px; border: none; border-right: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
-		background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; cursor: pointer; font-variant-numeric: tabular-nums;
+		background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: visible; cursor: pointer; font-variant-numeric: tabular-nums;
 		transition: width 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.15s, color 0.15s; }
 	.yr.now { color: var(--ink); }
 	.yr.here { background: var(--ink); color: var(--bg); font-weight: 800; cursor: zoom-out; }

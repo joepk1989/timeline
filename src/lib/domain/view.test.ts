@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { yearPos, yearsSpans, dayLabel, yearAge, yearShort, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { driftCards, yearPos, yearsSpans, dayLabel, yearAge, yearShort, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -163,6 +163,8 @@ describe('labels for the rows of years and days', () => {
 		expect(yearShort(2026, 20)).toBe("'26");
 		expect(yearShort(2026, 12)).toBe('');
 		expect(yearShort(2025, 12)).toBe("'25");
+		expect(yearShort(2025, 6)).toBe('');
+		expect(yearShort(2030, 6)).toBe("'30");
 	});
 });
 
@@ -181,5 +183,15 @@ describe('the line of all years', () => {
 		expect(s[0].from).toBeCloseTo(2026 + 363 / 365, 6);
 		expect(s[0].to).toBeCloseTo(2027 + 2 / 365, 6);
 		expect(s[1]).toMatchObject({ from: 2027, to: 2028 });
+	});
+});
+
+describe('placeholder photos', () => {
+	it('drift the same way for the same year, spread over the band and the crossing', () => {
+		const a = driftCards(7, 2026);
+		expect(driftCards(7, 2026)).toEqual(a);
+		expect(driftCards(7, 2027)).not.toEqual(a);
+		expect(a.every((c) => c.top >= 0 && c.top <= 1 && c.start >= 0 && c.start < 1 && c.secs >= 26 && c.secs <= 44 && Math.abs(c.tilt) <= 7)).toBe(true);
+		expect(new Set(a.map((c) => Math.floor(c.start * 7))).size).toBe(7);
 	});
 });
