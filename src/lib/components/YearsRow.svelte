@@ -16,8 +16,11 @@
 			return { y: yy, age: yearAge(app.tl, yy), count: yearOccurrences(app.visible, yy).filter((o) => !o.moment.virtual).length };
 		})
 	);
-	// All alike, as the columns of all years below, so the two line up.
-	const parts = $derived(partSpans(width, years.length));
+	// All alike, as the columns of all years below, so the two line up; the year on show just wide
+	// enough for its full number.
+	const parts = $derived(
+		ui.allYears ? partSpans(width, years.length) : partSpans(width, years.length, years.findIndex((yy) => yy.y === y), Math.max(1 / years.length, 52 / (width || 1)))
+	);
 	let pointed = $state<number | null>(null);
 	/** Two digits, '26; when the columns are very narrow, only every fifth year. */
 	const short = (yy: number, room: number) => (room >= 20 || yy % 5 === 0 ? `'${String(yy).slice(-2)}` : '');
@@ -61,13 +64,11 @@
 		transition: width 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.15s, color 0.15s; }
 	.yr.now { color: var(--ink); }
 	.yr.here { background: var(--ink); color: var(--bg); font-weight: 800; cursor: zoom-out; }
-	.yr.here .lbl { background: var(--ink); }
 	.yr.all { cursor: zoom-in; }
 	.yr.pointed { background: var(--hover); color: var(--ink); }
-	/* The full year may be wider than its column: it stands over its neighbours. */
+	/* The full year pointed at may be wider than its column: plain text over its neighbours. */
 	.yr.full { overflow: visible; z-index: 1; }
-	.yr.full .lbl { padding: 3px 8px; border-radius: 6px; background: inherit; }
-	.yr.full:not(.here) .lbl { background: var(--surface); box-shadow: 0 0 0 1px var(--line); color: var(--ink); }
+	.yr.full:not(.here) .lbl { padding: 0 6px; background: color-mix(in srgb, var(--ink) 7%, var(--bg)); color: var(--ink); line-height: 34px; }
 	@media (hover: hover) { .yr:not(.here):hover { background: var(--hover); color: var(--ink); } }
 	@media (prefers-reduced-motion: reduce) { .yr { transition: none; } }
 </style>
