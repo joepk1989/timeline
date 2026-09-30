@@ -8,7 +8,7 @@
 	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, MONTHS_SHORT, WEEKDAYS, season } from '$lib/domain/dates';
 	import { whenLabel, yearOccurrences } from '$lib/domain/occurrences';
-	import { yearPos, yearsSpans, dayLabel, yearAge, yearLabel, momentsLabel, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
+	import { yearPos, yearsSpans, dayLabel, yearAge, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import DayLine from './DayLine.svelte';
 	import Icon from './Icon.svelte';
@@ -45,7 +45,7 @@
 	const K = $derived(compact ? Math.max(1.4, Math.min(2.6, vh / 520)) : 1);
 	const ROWH = $derived(compact ? Math.round(24 * K) : 34);
 	const HEAD = $derived(2 * ROWH);
-	// The row of years: how old in each, and how many moments.
+	// The years of the timeline, for the line of all years (their row itself is YearsRow, fixed above the pages).
 	const years = $derived(
 		Array.from({ length: app.scope.to - app.scope.from + 1 }, (_, i) => {
 			const yy = app.scope.from + i;
@@ -81,7 +81,6 @@
 		const { rows, count } = packRows(list.map((b) => ({ left: b.left, right: b.left + b.w })), GAP);
 		return { list: list.map((b, i) => ({ ...b, row: rows[i] })), rows: count };
 	});
-	let yearHover = $state<number | null>(null);
 	function pickYear(yy: number) {
 		if (yy === y && !ui.allYears) ui.allYears = true;
 		else {
@@ -349,27 +348,6 @@
 	}} />
 
 <div class="root" bind:this={root}>
-{#if !compact}
-	<!-- The years of the timeline, the same height as the months and days: click one to go there. -->
-	<div class="years" role="group" aria-label="Jaren" style:--numrow="{ROWH}px">
-		{#each years as yy, i (yy.y)}
-			<button
-				class="yr"
-				style:width="{yearParts[i]?.width ?? 0}px"
-				class:here={yy.y === y && !ui.allYears}
-				class:all={ui.allYears}
-				class:pointed={ui.allYears && yearHover === yy.y}
-				class:now={yy.y === app.now.y}
-				aria-current={yy.y === y && !ui.allYears ? 'true' : undefined}
-				aria-expanded={yy.y === y ? ui.allYears : undefined}
-				aria-label="{yy.y}{yy.age ? `, ${yy.age}` : ''}{yy.count ? `, ${momentsLabel(yy.count)}` : ''}"
-				title="{yy.y}{yy.age ? ` · ${yy.age}` : ''}{yy.count ? ` · ${momentsLabel(yy.count)}` : ''}"
-				onclick={() => pickYear(yy.y)}
-			>{#if yy.count && (yearParts[i]?.width ?? 0) >= 60}<span class="dot" aria-hidden="true"></span>{/if}{yearLabel(yy.y, yy.age, yy.count, yearParts[i]?.width ?? 0)}</button>
-		{/each}
-	</div>
-{/if}
-
 {#if ui.allYears && !compact}
 	<!-- Zoomed out: the years as columns, the moments of all of them on the line. A click on a year goes into it. -->
 	<div
@@ -379,16 +357,16 @@
 		style:height="{Math.max(fill, 16 + Math.max(3, allBlocks.rows) * 32)}px"
 		role="group"
 		aria-label="Alle jaren"
-		onpointerleave={() => (yearHover = null)}
+		onpointerleave={() => (ui.yearHover = null)}
 	>
 		{#each years as yy, i (yy.y)}
 			<button
 				class="ycol"
-				class:pointed={yearHover === yy.y}
+				class:pointed={ui.yearHover === yy.y}
 				style:left="{yearParts[i]?.left ?? 0}px"
 				style:width="{yearParts[i]?.width ?? 0}px"
 				aria-label="Naar {yy.y}"
-				onpointerenter={() => (yearHover = yy.y)}
+				onpointerenter={() => (ui.yearHover = yy.y)}
 				onclick={() => pickYear(yy.y)}
 			></button>
 		{/each}
@@ -403,7 +381,7 @@
 				style:top="{10 + b.row * 32}px"
 				style:height="27px"
 				title="{b.o.moment.title} · {whenLabel(b.o)}{b.o.end && b.o.end.y !== b.o.y ? '' : ` ${b.o.y}`}"
-				onpointerenter={() => (yearHover = b.o.y)}
+				onpointerenter={() => (ui.yearHover = b.o.y)}
 				onclick={() => openMoment(b.o)}
 			>
 				<span class="days" style:left="{b.from - b.left}px" style:width="{b.days}px" aria-hidden="true"></span>
@@ -516,17 +494,8 @@
 	.ycol.pointed { background: var(--hover); }
 	.block.one { padding: 2px 10px 0; border-radius: 14px; }
 	.block.one .l1 { font-size: 13px; }
-	.yr.all { cursor: zoom-in; }
-	.yr.pointed { background: var(--hover); color: var(--ink); }
 	/* A real box, not display: contents: the browser only sends the wheel to elements with a box. */
 	.root { display: block; }
-	.years { display: flex; height: var(--numrow); border-bottom: 1px solid var(--line); overflow: hidden; }
-	.yr { position: relative; flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 2px; border: none; border-right: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
-		background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; cursor: pointer; font-variant-numeric: tabular-nums; transition: background-color 0.15s, color 0.15s; }
-	.yr.now { color: var(--ink); }
-	.yr.here { background: var(--ink); color: var(--bg); font-weight: 800; cursor: default; }
-	.yr .dot { flex: 0 0 auto; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.55; }
-	@media (hover: hover) { .yr:not(.here):hover { background: var(--hover); color: var(--ink); } }
 	.scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 	.wrap { position: relative; --ease: 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 	/* A month is a column: a line on its left, on top a bar in the colour of its season, the only colour here. */

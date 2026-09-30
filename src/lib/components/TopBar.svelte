@@ -117,7 +117,6 @@
 	.more.fold { position: absolute; left: 0; right: 0; top: 100%; padding-top: 8px; background: var(--bg); border-bottom: 1px solid var(--line); box-shadow: 0 12px 24px rgba(10, 20, 30, 0.08);
 		opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity 0.2s, transform 0.2s, visibility 0s 0.2s; }
 	.more.fold.open, .more.fold:has(:focus-visible) { opacity: 1; visibility: visible; transform: none; transition: opacity 0.2s, transform 0.2s; }
-	@media (hover: hover) { header:hover .more.fold { opacity: 1; visibility: visible; transform: none; transition: opacity 0.2s, transform 0.2s; } }
 	.more-btn { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, background-color 0.15s; }
 	.more-btn.open { transform: rotate(180deg); }
 	@media (hover: hover) { .more-btn:hover { background: var(--hover); } }

@@ -10,6 +10,7 @@
 	import Menu from '$lib/components/Menu.svelte';
 	import Pager from '$lib/components/Pager.svelte';
 	import ScalesView from '$lib/components/ScalesView.svelte';
+	import YearsRow from '$lib/components/YearsRow.svelte';
 	import SignIn from '$lib/components/SignIn.svelte';
 	import Presenter from '$lib/components/Presenter.svelte';
 	import TimelineEditor from '$lib/components/TimelineEditor.svelte';
@@ -54,6 +55,7 @@
 		{#if app.scales}
 			<ScalesView />
 		{:else}
+			{#if app.mode === 'year' && app.yearView === 'lijn'}<YearsRow />{/if}
 			<Pager />
 			{#if app.canEdit}
 				<button class="fab" onclick={add}><Icon name="plus" />Toevoegen</button>

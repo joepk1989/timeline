@@ -20,6 +20,8 @@ class UiState {
 	account = $state(false);
 	/** The Jaarlijn zoomed out: all the years of the timeline, without months. */
 	allYears = $state(false);
+	/** The year pointed at, in the row of years or among the columns of all years. */
+	yearHover = $state<number | null>(null);
 }
 
 export const ui = new UiState();
