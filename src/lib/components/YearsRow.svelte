@@ -6,7 +6,7 @@
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { yearOccurrences } from '$lib/domain/occurrences';
-	import { momentsLabel, partSpans, yearAge, yearLabel } from '$lib/domain/view';
+	import { momentsLabel, partSpans, yearAge } from '$lib/domain/view';
 
 	let width = $state(0);
 	const y = $derived(app.year);
@@ -19,6 +19,8 @@
 	// All alike, as the columns of all years below, so the two line up.
 	const parts = $derived(partSpans(width, years.length));
 	let pointed = $state<number | null>(null);
+	/** Two digits, '26; when the columns are very narrow, only every fifth year. */
+	const short = (yy: number, room: number) => (room >= 20 || yy % 5 === 0 ? `'${String(yy).slice(-2)}` : '');
 	function pick(yy: number) {
 		if (yy === y && !ui.allYears) ui.allYears = true;
 		else {
@@ -48,7 +50,7 @@
 			}}
 			onpointerleave={() => pointed === yy.y && (pointed = null)}
 			onclick={() => pick(yy.y)}
-		><span class="lbl">{(yy.y === y && !ui.allYears) || pointed === yy.y ? yy.y : yearLabel(yy.y, null, 0, parts[i]?.width ?? 0)}</span></button>
+		><span class="lbl">{(yy.y === y && !ui.allYears) || pointed === yy.y ? yy.y : short(yy.y, parts[i]?.width ?? 0)}</span></button>
 	{/each}
 </div>
 
