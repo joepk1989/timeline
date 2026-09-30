@@ -6,7 +6,7 @@
 	import { onDestroy } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { MONTHS, WEEKDAYS } from '$lib/domain/dates';
+	import { dayNumber, MONTHS, MONTHS_SHORT, WEEKDAYS } from '$lib/domain/dates';
 	import { dayMoments, spanOf, sunHeight } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import Icon from './Icon.svelte';
@@ -33,8 +33,8 @@
 	const sunH = $derived(isToday ? nowH : 12);
 
 	/** Does a moment run on from the day before, or into the next? */
-	const n = (Y: number, M: number, D: number) => Y * 10000 + M * 100 + D;
-	const short = (t: { m: number; d: number }) => `${t.d} ${MONTHS[t.m].slice(0, 3)}`;
+	const short = (t: { m: number; d: number }) => `${t.d} ${MONTHS_SHORT[t.m]}`;
+	const n = dayNumber;
 	function edges(o: Occurrence) {
 		const { from, to } = spanOf(o);
 		const here = n(y, m, d);

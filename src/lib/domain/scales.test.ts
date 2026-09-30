@@ -40,6 +40,8 @@ describe('time scales', () => {
 	it('numbers weeks the ISO way, Monday to Sunday', () => {
 		const r = scaleRow('week', yearOf(2026, 8, 28), yearOf(2026, 9, 6), now);
 		expect(r.kind === 'segments' && r.list.map((s) => `${s.label} ${s.note}`)).toEqual(['week 40 28 sep', 'week 41 5 okt']);
+		const mar = scaleRow('week', yearOf(2026, 2, 2), yearOf(2026, 2, 3), now);
+		expect(mar.kind === 'segments' && mar.list[0].note).toBe('2 mrt');
 		const jan = scaleRow('week', yearOf(2027, 0, 1), yearOf(2027, 0, 5), now);
 		expect(jan.kind === 'segments' && jan.list.map((s) => s.label)).toEqual(['week 53', 'week 1']);
 	});

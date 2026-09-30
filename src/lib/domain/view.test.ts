@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { yearPos, yearsSpans, dayLabel, yearAge, yearLabel, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, placeLabels, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { yearPos, yearsSpans, dayLabel, yearAge, yearShort, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -85,10 +85,6 @@ describe('view helpers', () => {
 		expect(r.lanes).toBe(3);
 		expect(yearLines([], 2028).days).toBe(366);
 	});
-	it('places labels without overlap, as close to their spot as possible', () => {
-		expect(placeLabels([0, 5, 100], 20)).toEqual([0, 20, 100]);
-		expect(placeLabels([90, 95], 20, 110)).toEqual([70, 90]);
-	});
 });
 
 describe('monthSpans', () => {
@@ -163,12 +159,10 @@ describe('labels for the rows of years and days', () => {
 		expect(yearAge(tl, 2022)).toBe('geboren');
 		expect(yearAge(tl, 2026)).toBe('4 jaar');
 		expect(yearAge({ ...tl, anchor: null }, 2026)).toBeNull();
-		expect(yearLabel(2026, '4 jaar', 9, 240)).toBe('2026 · 4 jaar · 9 momenten');
-		expect(yearLabel(2026, '4 jaar', 9, 120)).toBe('2026 · 4 jaar');
-		expect(yearLabel(2026, '4 jaar', 9, 60)).toBe('2026');
-		expect(yearLabel(2026, null, 0, 30)).toBe("'26");
-		expect(yearLabel(2026, null, 0, 20)).toBe('');
-		expect(yearLabel(2025, null, 0, 20)).toBe("'25");
+		expect(yearShort(2026, 60)).toBe("'26");
+		expect(yearShort(2026, 20)).toBe("'26");
+		expect(yearShort(2026, 12)).toBe('');
+		expect(yearShort(2025, 12)).toBe("'25");
 	});
 });
 

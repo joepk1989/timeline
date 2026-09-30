@@ -2,7 +2,7 @@
 // Time is a number of years on the calendar (astronomical: year 0 is 1 BC), with fractions for days,
 // so 2026.5 is mid 2026 and 4.6 billion years ago is roughly -4.6e9. "Now" is passed in.
 
-import { MONTHS } from './dates';
+import { MONTHS, MONTHS_SHORT } from './dates';
 import type { Moment, Timeline } from './types';
 
 export const SCALES_DEMO_NAME = 'Demo: tijdschalen';
@@ -176,7 +176,7 @@ export function scaleRow(id: ScaleId, a: number, b: number, now: number, max = 6
 		const from = yearOf(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
 		if (from >= b) break;
 		const next = new Date(t.getTime() + 7 * 86_400_000);
-		list.push({ from, to: yearOf(next.getUTCFullYear(), next.getUTCMonth(), next.getUTCDate()), label: `week ${isoWeek(t)}`, note: `${t.getUTCDate()} ${MONTHS[t.getUTCMonth()].slice(0, 3)}` });
+		list.push({ from, to: yearOf(next.getUTCFullYear(), next.getUTCMonth(), next.getUTCDate()), label: `week ${isoWeek(t)}`, note: `${t.getUTCDate()} ${MONTHS_SHORT[t.getUTCMonth()]}` });
 		t = next;
 	}
 	return { kind: 'segments', list };

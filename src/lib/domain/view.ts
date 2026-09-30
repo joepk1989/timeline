@@ -195,19 +195,6 @@ export function yearLines(occs: Occurrence[], y: number): { days: number; items:
 	return { days, items, lanes: ends.length };
 }
 
-/**
- * Places labels of height `h` as close as possible to where they belong (`wanted`, sorted top to bottom),
- * without overlapping: a label that would overlap is pushed down, and a crowd at the bottom is pushed back up.
- */
-export function placeLabels(wanted: number[], h: number, max = Infinity): number[] {
-	const out: number[] = [];
-	for (const w of wanted) out.push(Math.max(w, out.length ? out[out.length - 1] + h : -Infinity));
-	for (let i = out.length - 1; i >= 0; i--) {
-		const limit = i === out.length - 1 ? max - h : out[i + 1] - h;
-		if (out[i] > limit) out[i] = Math.max(limit, 0);
-	}
-	return out;
-}
 
 export interface MonthSpan { m: number; start: number; days: number; left: number; width: number; }
 
@@ -300,15 +287,8 @@ export function yearAge(tl: Timeline, y: number): string | null {
 	return `${n} jaar`;
 }
 
-/** A year's label in the row of years, as room allows; when narrow, only every fifth year. */
-export function yearLabel(y: number, age: string | null, count: number, room: number): string {
-	const parts = [String(y)];
-	if (room >= 110 && age) parts.push(age);
-	if (room >= 230 && count) parts.push(momentsLabel(count));
-	if (room >= 44) return parts.join(' · ');
-	if (room >= 26 || (room >= 14 && y % 5 === 0)) return `'${String(y).slice(-2)}`;
-	return '';
-}
+/** A year in the row of years: two digits ('26); when its column is very narrow, only every fifth year. */
+export const yearShort = (y: number, room: number) => (room >= 20 || y % 5 === 0 ? `'${String(y).slice(-2)}` : '');
 
 /** A day as a year with a fraction, for a line of several years: 1 July 2026 is about 2026.5. */
 export const yearPos = (t: Day) => t.y + dayOfYear(t.y, t.m, t.d) / Math.round((Date.UTC(t.y + 1, 0, 1) - Date.UTC(t.y, 0, 1)) / 86_400_000);

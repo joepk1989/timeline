@@ -66,7 +66,7 @@
 	const hi = $derived(agoPos(now - b) * 100);
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && !whole && up()} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && !whole && !document.querySelector('dialog[open]') && up()} />
 
 <div class="scales">
 	<header class="where">
@@ -197,9 +197,9 @@
 
 	@media (hover: hover) {
 		.crumb:not(:last-child):not([aria-current='true']):hover, .out:not(:disabled):hover { background: var(--hover); }
-		.seg:not(.here):hover { background: color-mix(in srgb, var(--ink) 22%, var(--surface)); }
+		.seg:not(.here):hover { filter: var(--hover-filter); }
 		.fine:hover { color: var(--ink); }
-		.mark:hover { transform: translateX(-50%) scale(1.3); }
+		.mark:hover { filter: var(--hover-filter); }
 		.lmk:hover { filter: var(--hover-filter); z-index: 1; }
 	}
 	@media (max-width: 640px) {

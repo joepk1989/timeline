@@ -8,7 +8,7 @@
 	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, MONTHS_SHORT, WEEKDAYS, season } from '$lib/domain/dates';
 	import { whenLabel, yearOccurrences } from '$lib/domain/occurrences';
-	import { yearPos, yearsSpans, dayLabel, yearAge, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
+	import { yearPos, yearsSpans, dayLabel, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import DayLine from './DayLine.svelte';
 	import Icon from './Icon.svelte';
@@ -46,12 +46,7 @@
 	const ROWH = $derived(compact ? Math.round(24 * K) : 34);
 	const HEAD = $derived(2 * ROWH);
 	// The years of the timeline, for the line of all years (their row itself is YearsRow, fixed above the pages).
-	const years = $derived(
-		Array.from({ length: app.scope.to - app.scope.from + 1 }, (_, i) => {
-			const yy = app.scope.from + i;
-			return { y: yy, age: yearAge(app.tl, yy), count: yearOccurrences(app.visible, yy).filter((o) => !o.moment.virtual).length };
-		})
-	);
+	const years = $derived(Array.from({ length: app.scope.to - app.scope.from + 1 }, (_, i) => ({ y: app.scope.from + i })));
 	const GAP = 6; // px between blocks on a row
 
 	let win = $state(0);
@@ -60,11 +55,7 @@
 	const vw = $derived(screen);
 	// The year on show gets room for its age and moments, as an open month does; the others share the rest.
 	// Zoomed out to all the years, they share the width alike.
-	const yearParts = $derived(
-		ui.allYears
-			? partSpans(screen, years.length)
-			: partSpans(screen, years.length, years.findIndex((yy) => yy.y === y), years.length > 1 ? Math.min(0.5, Math.max(1 / years.length, 240 / (screen || 1))) : 1)
-	);
+	const yearParts = $derived(partSpans(screen, years.length));
 	/** Where a moment of any year sits on the line of all years. */
 	const xAll = (t: number) => partX(yearParts, t - app.scope.from);
 	const allBlocks = $derived.by(() => {
@@ -81,12 +72,10 @@
 		const { rows, count } = packRows(list.map((b) => ({ left: b.left, right: b.left + b.w })), GAP);
 		return { list: list.map((b, i) => ({ ...b, row: rows[i] })), rows: count };
 	});
+	/** From the line of all years into one year. */
 	function pickYear(yy: number) {
-		if (yy === y && !ui.allYears) ui.allYears = true;
-		else {
-			ui.allYears = false;
-			app.goTo(yy - app.scope.from);
-		}
+		ui.allYears = false;
+		app.goTo(yy - app.scope.from);
 	}
 	let wrapEl = $state<HTMLDivElement>();
 	let scroller = $state<HTMLDivElement>();
@@ -123,13 +112,22 @@
 	};
 
 	// How wide a block's text is, so a festival of a few days still shows its whole name.
+	// Measured once per text and font: the layout runs again on every hover.
 	let ctx: CanvasRenderingContext2D | null = null;
+	let family = '';
+	const widths = new Map<string, number>();
 	function textWidth(text: string, font: string): number {
 		if (typeof document === 'undefined') return text.length * 8;
+		const key = font + '|' + text;
+		const known = widths.get(key);
+		if (known != null) return known;
 		ctx ??= document.createElement('canvas').getContext('2d');
 		if (!ctx) return text.length * 8;
-		ctx.font = `${font} ${getComputedStyle(document.body).fontFamily}`;
-		return ctx.measureText(text).width;
+		family ||= getComputedStyle(document.body).fontFamily;
+		ctx.font = `${font} ${family}`;
+		const w = ctx.measureText(text).width;
+		widths.set(key, w);
+		return w;
 	}
 	/** Lays the blocks out on rows, their names in `font` px (when presenting) so a block is as wide as its name. */
 	function layout(font: number) {
@@ -151,7 +149,7 @@
 	}
 	// With a fixed height the rows squeeze together to fit, and the names shrink with them (laid out once
 	// more at that size, so the blocks are as wide as the names they now carry).
-	const rowFor = (rows: number) => Math.min(compact ? 34 * K : 50, fixed ? (fixed - HEAD - 16) / Math.max(1, rows) : Infinity);
+	const rowFor = (rows: number) => Math.max(compact ? 18 : 0, Math.min(compact ? 34 * K : 50, fixed ? (fixed - HEAD - 16) / Math.max(1, rows) : Infinity));
 	const FONT = $derived.by(() => {
 		if (!compact) return 14;
 		// Settle on a size: smaller names make narrower blocks, so fewer rows, so room for a larger size again.
@@ -165,7 +163,8 @@
 		return best;
 	});
 	const blocks = $derived(layout(FONT));
-	const ROW = $derived(rowFor(blocks.rows)); // px per row of blocks
+	// Never closer than a block is high: when a busy year does not fit, the last rows are cut off, not piled up.
+	const ROW = $derived(Math.max(compact ? 18 : 0, rowFor(blocks.rows))); // px per row of blocks
 	const BLOCK = $derived(Math.max(14, Math.min(compact ? 29 * K : 42, ROW - 4))); // px a block is high
 	const height = $derived(fixed ?? Math.max(fill, HEAD + 10 + Math.max(compact ? 1 : 3, blocks.rows) * ROW + 10));
 	const todayDoy = $derived(app.now.y === y ? dayOfYear(y, app.now.m, app.now.d) : null);
@@ -179,9 +178,12 @@
 		fill = Math.round(Math.max(260, half ? section.clientHeight / 2 : section.clientHeight - top));
 	});
 
-	// On a narrow screen, start at today.
+	// On a narrow screen, start at today, once: after that the user decides where to look.
+	let started = false;
 	$effect(() => {
-		if (scroller && todayDoy != null && pinned == null && full > vw) scroller.scrollLeft = yearX(monthSpans(y, full), todayDoy + 0.5) - vw / 2;
+		if (started || !scroller || !vw) return;
+		started = true;
+		if (todayDoy != null && full > vw) scroller.scrollLeft = yearX(monthSpans(y, full), todayDoy + 0.5) - vw / 2;
 	});
 
 	// Keep the moment on show in view when the year scrolls sideways.
@@ -223,6 +225,8 @@
 		if (t.getFullYear() !== y) return;
 		pinned = t.getMonth();
 		day = t.getDate();
+		dayHover = null;
+		wantD = undefined;
 	}
 	/** Where a day of the month over the full width sits: all alike, or the one zoomed into wide and the rest thin. */
 	// Together the thin days take at most 15% of the width, so the day itself stays wide, also on a phone.
@@ -342,7 +346,8 @@
 </script>
 
 <svelte:window bind:innerWidth={win} bind:innerHeight={vh} onkeydown={(e) => {
-		if (e.key !== 'Escape') return;
+		// Only on the page on show, and not when Esc is closing a dialog or the presentation.
+		if (e.key !== 'Escape' || compact || y !== app.year || ui.present || document.querySelector('dialog[open]')) return;
 		if (ui.allYears) ui.allYears = false;
 		else if (pinned != null) back();
 	}} />
@@ -558,13 +563,13 @@
 	@media (hover: hover) { .daylbl .dn:hover { background: var(--hover); } }
 	.stp { flex: 0 0 auto; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: color-mix(in srgb, var(--bg) 55%, transparent); color: var(--ink); cursor: pointer; transition: background-color 0.15s; }
 	.stp :global(svg) { width: 14px; height: 14px; }
-	@media (hover: hover) { .stp:hover { background: var(--bg); } }
+	@media (hover: hover) { .stp:hover { background: var(--hover); } }
 	.daylbl b { font-weight: 800; font-variant-numeric: tabular-nums; }
 	/* The plus that adds a moment: small, round, only while the mouse is on its month or day. */
 	.plus { position: absolute; z-index: 5; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: var(--ink); color: var(--bg);
 		cursor: pointer; box-shadow: 0 2px 8px rgba(10, 20, 30, 0.2); animation: fade 0.15s both; transition: transform 0.15s, left var(--ease); }
 	.plus :global(svg) { width: 14px; height: 14px; }
-	@media (hover: hover) { .plus:hover { transform: scale(1.12); } }
+	@media (hover: hover) { .plus:hover { filter: var(--hover-filter); } }
 	.dayv { position: absolute; top: var(--head); bottom: 0; z-index: 3; overflow: hidden; transition: left var(--ease), width var(--ease); }
 	.dayc span { position: absolute; top: 0; left: 0; right: 0; height: var(--numrow); line-height: var(--numrow); text-align: center; white-space: nowrap; overflow: hidden; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
 	.dayc.we span { color: var(--ink); }
@@ -581,8 +586,8 @@
 	.block .l2 { font-size: 12px; line-height: 15px; color: var(--muted); }
 	.block .sq { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--muted); margin-right: 6px; vertical-align: 0; }
 	@media (hover: hover) {
-		.month:hover { --bar: color-mix(in srgb, var(--s) 70%, var(--bg)); }
-		.month.open:hover { --bar: color-mix(in srgb, var(--s) 80%, var(--bg)); }
+		.month:hover { filter: var(--hover-filter); }
+		.ycol:hover { background: var(--hover); }
 		.block:hover { filter: var(--hover-filter); z-index: 3; }
 	}
 	.block:focus-visible { z-index: 3; }
