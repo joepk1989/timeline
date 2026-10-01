@@ -31,6 +31,7 @@
 	let playing = $state(true);
 	let idle = $state(false);
 	let vh = $state(800);
+	let mh = $state(0);
 	const startYear = app.year;
 
 	const first = momentSlides(app.visible, app.scope, startYear, app.now, { what: firstWhat, photos: true });
@@ -159,8 +160,19 @@
 <svelte:window {onkeydown} bind:innerHeight={vh} />
 <svelte:document {onfullscreenchange} onvisibilitychange={() => document.visibilityState === 'visible' && lock && wake()} />
 
-<div class="stage" class:idle role="region" aria-label="Presentatie van {app.tl.name}" onpointermove={poke}>
+<div class="stage" class:idle class:onphoto={!!s?.photo} role="region" aria-label="Presentatie van {app.tl.name}" onpointermove={poke}>
 	<div class="prog" bind:this={prog}></div>
+
+	<!-- A moment with a photo: the photo fills everything above the months, whole and sharp, over a blurred copy of itself. -->
+	{#if s?.photo}
+		{#key i}
+			<div class="backdrop" style:bottom="{mh}px" aria-hidden="true">
+				<Photo path={s.photo} class="blur" lazy={false} />
+				<Photo path={s.photo} class="sharp" lazy={false} />
+				<div class="scrim"></div>
+			</div>
+		{/key}
+	{/if}
 
 	<header class="top">
 		<h2 class="big" class:now={y === app.now.y} style:view-transition-name="pres-year">{y}</h2>
@@ -205,7 +217,7 @@
 							{#if !mo.virtual}<span class="cat" style:--c={app.catOf(mo.categoryId).color}>{app.catOf(mo.categoryId).name}</span>{/if}
 						</div>
 					</div>
-					{#if s.photo}<div class="photo"><Photo path={s.photo} alt={mo.title} lazy={false} /></div>{/if}
+					{#if s.photo}<span class="sr">Foto: {mo.title}</span>{/if}
 				</article>
 			{/key}
 		{:else}
@@ -215,7 +227,7 @@
 		{/if}
 	</main>
 
-	<div class="months" class:edge={app.yearView === 'lijn'} style:view-transition-name="pres-months">
+	<div class="months" bind:clientHeight={mh} class:edge={app.yearView === 'lijn'} style:view-transition-name="pres-months">
 		{#if app.yearView === 'lijn'}
 			<YearLines {y} {occs} compact height={Math.round(Math.max(200, vh * 0.38))} focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
 		{:else}
@@ -244,9 +256,8 @@
 
 	.show { position: relative; min-height: 0; display: flex; align-items: center; overflow: hidden; }
 	.moment { width: 100%; max-height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3vw; align-items: center; animation: fadein 0.6s ease both; }
-	/* The photo takes half the screen width and the full height between the year and the months. */
-	.moment.hasph { height: 100%; grid-template-columns: minmax(0, 1fr) 50vw; align-items: stretch; }
-	.moment.hasph .text { align-self: center; }
+	/* With a photo the text keeps to the left, over the dark side of the photo. */
+	.moment.hasph .text { max-width: min(46vw, 900px); }
 	.moment.hasph .note { -webkit-line-clamp: 3; line-clamp: 3; }
 	.moment.first { animation-delay: 0.35s; }
 	@keyframes fadein { from { opacity: 0; transform: translateY(1.5vh); } to { opacity: 1; transform: none; } }
@@ -263,8 +274,23 @@
 	.pill { padding: 0.2em 0.75em; border-radius: 99px; background: var(--c); color: #fff; font-weight: 700; }
 	.cat { display: inline-flex; align-items: center; gap: 0.4em; font-weight: 600; }
 	.cat::before { content: ''; width: 0.6em; height: 0.6em; border-radius: 50%; background: var(--c); }
-	.photo { min-height: 0; height: 100%; display: flex; }
-	.photo :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 12px; box-shadow: 0 2vh 6vh rgba(10, 20, 30, 0.2); }
+	.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+	/* The photo, from the top of the screen down to the months. */
+	.backdrop { position: absolute; inset: 0 0 auto 0; top: 0; z-index: 0; overflow: hidden; background: #111; display: flex; justify-content: flex-end; animation: photoin 0.8s ease both; }
+	.backdrop :global(.blur) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(40px) brightness(0.55) saturate(1.2); transform: scale(1.15); }
+	.backdrop :global(.sharp) { position: relative; display: block; height: 100%; max-width: 100%; object-fit: contain; }
+	.scrim { position: absolute; inset: 0; background:
+		linear-gradient(90deg, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.45) 38%, rgba(0, 0, 0, 0) 62%),
+		linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 22%); }
+	@keyframes photoin { from { opacity: 0; } to { opacity: 1; } }
+	.top, .show { position: relative; z-index: 1; }
+	/* Text in white over the photo. */
+	.onphoto .big, .onphoto .ttl, .onphoto .rel.age, .onphoto .cat { color: #fff; }
+	.onphoto .big.now { color: #fff; }
+	.onphoto .info, .onphoto .when, .onphoto .note { color: rgba(255, 255, 255, 0.85); }
+	.onphoto .ageline { color: #fff; }
+	.onphoto .ttl, .onphoto .big { text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35); }
 	.empty { color: var(--muted); font-size: 20px; }
 
 	.months { min-width: 0; }
@@ -276,8 +302,11 @@
 	}
 	/* Tall and narrow (a phone upright): photo above the text, controls wrap under the year. */
 	@media (max-aspect-ratio: 1/1) {
-		.moment.hasph { height: auto; grid-template-columns: minmax(0, 1fr); }
-		.moment.hasph .photo { order: -1; height: 20vh; }
+		/* Upright: the photo fills the width, the text sits at the bottom over a dark fade. */
+		.backdrop { justify-content: center; }
+		.scrim { background: linear-gradient(0deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0) 65%), linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 22%); }
+		.onphoto .show { align-items: flex-end; }
+		.moment.hasph .text { max-width: none; }
 		.moment.hasph .note { -webkit-line-clamp: 2; line-clamp: 2; }
 		.moment.hasph .em { display: none; }
 		.ui { margin-left: 0; width: 100%; justify-content: flex-start; }
@@ -289,7 +318,7 @@
 		.tags { font-size: 14px; margin-top: 10px; }
 		.cbtn { height: 38px; min-width: 38px; }
 	}
-	@media (prefers-reduced-motion: reduce) { .moment { animation: none; } }
+	@media (prefers-reduced-motion: reduce) { .moment, .backdrop { animation: none; } }
 
 	/* Hover */
 	.cbtn { transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, filter 0.15s; }
