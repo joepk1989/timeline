@@ -163,7 +163,7 @@
 <div class="stage" class:idle class:onphoto={!!s?.photo} role="region" aria-label="Presentatie van {app.tl.name}" onpointermove={poke}>
 	<div class="prog" bind:this={prog}></div>
 
-	<!-- A moment with a photo: the photo fills everything above the months, whole and sharp, over a blurred copy of itself. -->
+	<!-- A moment with a photo: the photo fills everything above the months, whole, sharp and centred, over a blurred copy of itself. -->
 	{#if s?.photo}
 		{#key i}
 			<div class="backdrop" style:bottom="{mh}px" aria-hidden="true">
@@ -277,7 +277,7 @@
 	.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 	/* The photo, from the top of the screen down to the months. */
-	.backdrop { position: absolute; inset: 0 0 auto 0; top: 0; z-index: 0; overflow: hidden; background: #111; display: flex; justify-content: flex-end; animation: photoin 0.8s ease both; }
+	.backdrop { position: absolute; inset: 0 0 auto 0; top: 0; z-index: 0; overflow: hidden; background: #111; display: flex; justify-content: center; animation: photoin 0.8s ease both; }
 	.backdrop :global(.blur) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(40px) brightness(0.55) saturate(1.2); transform: scale(1.15); }
 	.backdrop :global(.sharp) { position: relative; display: block; height: 100%; max-width: 100%; object-fit: contain; }
 	.scrim { position: absolute; inset: 0; background:
@@ -303,7 +303,6 @@
 	/* Tall and narrow (a phone upright): photo above the text, controls wrap under the year. */
 	@media (max-aspect-ratio: 1/1) {
 		/* Upright: the photo fills the width, the text sits at the bottom over a dark fade. */
-		.backdrop { justify-content: center; }
 		.scrim { background: linear-gradient(0deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0) 65%), linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 22%); }
 		.onphoto .show { align-items: flex-end; }
 		.moment.hasph .text { max-width: none; }
