@@ -33,7 +33,7 @@
 	let vh = $state(800);
 	const startYear = app.year;
 
-	const first = momentSlides(app.visible, app.scope, startYear, app.now, { what: firstWhat, photos: false });
+	const first = momentSlides(app.visible, app.scope, startYear, app.now, { what: firstWhat, photos: true });
 	let built = $state(first);
 	let i = $state(first.start);
 	const slides = $derived(built.slides);
@@ -52,7 +52,7 @@
 	function rebuild(w: ShowWhat) {
 		what = w;
 		save();
-		built = momentSlides(app.visible, app.scope, y, app.now, { what, photos: false });
+		built = momentSlides(app.visible, app.scope, y, app.now, { what, photos: true });
 		i = built.start;
 		restart();
 	}
@@ -196,6 +196,7 @@
 						<div class="when">
 							<span class="date">{o.m == null ? `Heel ${o.y}` : o.end ? whenLabel(o) + (o.y === o.end.y ? ` ${o.y}` : '') : labelFull(o.y, o.m, o.d)}</span>
 							{#each relParts(o, app.tl, app.now) as r, ri (ri)}<span class="rel {r.kind}">{r.text}</span>{/each}
+							{#if s.photoCount > 1}<span class="rel">foto {s.photoIndex + 1} van {s.photoCount}</span>{/if}
 						</div>
 						<h3 class="ttl" style:--fit={Math.min(1, 13 / Math.max(...mo.title.split(/\s+/).map((w) => w.length)))}>{mo.title}</h3>
 						{#if mo.note}<p class="note">{mo.note}</p>{/if}

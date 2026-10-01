@@ -95,7 +95,7 @@
 		app.toast('Printversie gedownload. Open hem en kies Afdrukken.');
 	});
 	const presentation = () => run(async () => {
-		const slides = buildSlides(app.visible, app.scope, app.year, app.now, { what: 'all', years: true, photos: false });
+		const slides = buildSlides(app.visible, app.scope, app.year, app.now, { what: 'all', years: true, photos: true });
 		if (!slides.length) { app.toast('Er zijn nog geen momenten om te laten zien'); return; }
 		const photos = await photoMap(slides.flatMap((s) => (s.kind === 'moment' && s.photo ? [s.photo] : [])));
 		download(`${slug(app.tl.name)}-presentatie.html`, presentationHtml(app.tl, slides, app.scope, app.now, 8000, photos));
