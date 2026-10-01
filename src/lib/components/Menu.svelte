@@ -108,6 +108,14 @@
 		if (f) await run(() => app.restore(f));
 	}
 	const close = () => (ui.menu = null);
+	let photoInput: HTMLInputElement | undefined = $state();
+	function addPhotos() {
+		const files = [...(photoInput?.files ?? [])];
+		if (photoInput) photoInput.value = '';
+		if (!files.length) return;
+		close();
+		app.importPhotos(files);
+	}
 </script>
 
 <Dialog open={!!ui.menu} onclose={close} label="Menu" kind="side">
@@ -178,6 +186,13 @@
 
 		<section class="box" aria-labelledby="h-add">
 			<div class="sh"><h3 id="h-add"><span>5</span>Momenten</h3></div>
+			{#if app.canEdit}
+				<div class="bk">
+					<Btn onclick={() => photoInput?.click()}>Foto's toevoegen</Btn>
+					<input type="file" accept="image/*" multiple hidden bind:this={photoInput} onchange={addPhotos} />
+				</div>
+				<p class="note">Kies een of meer foto's. Elke dag wordt een moment, op de datum uit de foto of de bestandsnaam.</p>
+			{/if}
 			{#each levels as l (l.lvl)}
 				{@const a = l.ready ? ageLabel(app.tl, l.y, l.m, l.d) : null}
 				<div class="grp">

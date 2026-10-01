@@ -20,6 +20,12 @@
 	const photos = $derived<GalleryItem[]>(real.flatMap((o) => o.moment.photos.map((path) => ({ path, o }))));
 	// Placeholders for a year without photos: the icons of its moments, or a few cheerful ones.
 	const cards = $derived(driftCards(7, y));
+	let photoInput: HTMLInputElement | undefined = $state();
+	function addPhotos() {
+		const files = [...(photoInput?.files ?? [])];
+		if (photoInput) photoInput.value = '';
+		app.importPhotos(files);
+	}
 	const icons = $derived.by(() => {
 		const own = [...new Set(real.map((o) => o.moment.emoji).filter(Boolean))];
 		return own.length >= 3 ? own : [...own, '🌅', '🎈', '🌳', '🏖️', '🎉', '🚲', '☕'].slice(0, 7);
@@ -73,7 +79,11 @@
 							><span class="pic">{icons[i % icons.length]}</span></button>
 						{/each}
 					</div>
-					<p class="nophoto">Nog geen foto's uit {y}.{app.canEdit ? ' Voeg ze toe bij een moment.' : ''}</p>
+					<p class="nophoto">
+						Nog geen foto's uit {y}.
+						{#if app.canEdit}<button class="addph" onclick={() => photoInput?.click()}>Foto's toevoegen</button>
+							<input type="file" accept="image/*" multiple hidden bind:this={photoInput} onchange={addPhotos} />{/if}
+					</p>
 				{/each}
 			</div>
 		</div>
@@ -101,6 +111,8 @@
 	.photos { position: relative; container-type: size; flex: 1 1 0; min-width: 0; display: flex; gap: 10px; align-items: center; overflow-x: auto; overflow-y: hidden; padding-right: 3vw; scrollbar-width: none; }
 	.photos::-webkit-scrollbar { display: none; }
 	.nophoto { position: absolute; left: 0; bottom: 2px; margin: 0; color: var(--muted); font-size: 13px; pointer-events: none; }
+	.addph { pointer-events: auto; margin-left: 4px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+	@media (hover: hover) { .addph:hover { background: var(--hover); filter: var(--hover-filter); } }
 	/* Polaroids drifting from right to left, each at its own height, size, pace and tilt, bobbing gently. */
 	.drift { position: absolute; inset: 0; overflow: hidden; mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent); }
 	.card { position: absolute; left: 0; top: calc(var(--top) * 50%); height: min(calc(var(--size) * 52%), 200px); aspect-ratio: 4 / 5; padding: 0; border: none; border-radius: 4px;

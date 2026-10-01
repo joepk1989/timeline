@@ -12,6 +12,9 @@ import { newId, type Backend, type Role } from '$lib/data/backend';
 import { clearLocalData, hasLocalData, localBackend } from '$lib/data/local';
 import { cloudBackend } from '$lib/data/cloud';
 import { createZip, readZip } from '$lib/domain/zip';
+import { photoMoments, type ImportedPhoto } from '$lib/domain/photoImport';
+import { parseDate } from '$lib/domain/dates';
+import { preparePhoto } from '$lib/data/photos';
 
 const store = {
 	get(k: string) {
@@ -283,6 +286,47 @@ class AppState {
 			this.fail(e);
 			return false;
 		}
+	}
+
+	/** Adds a batch of photos at once: one moment per day they were taken on (from EXIF or the file name), then shows the first. */
+	async importPhotos(files: File[]): Promise<void> {
+		if (!files.length || !this.canEdit) return;
+		const tl = this.tl, done: ImportedPhoto[] = [];
+		let failed = 0;
+		for (const [i, f] of files.entries()) {
+			this.toast(files.length === 1 ? 'Foto toevoegen…' : `Foto's toevoegen… ${i + 1} van ${files.length}`, undefined, 60_000);
+			try {
+				const { blob, taken } = await preparePhoto(f);
+				done.push({ path: await this.backend.uploadPhoto(tl.id, blob), taken });
+			} catch {
+				failed++;
+			}
+		}
+		if (!done.length) { this.toast(failed === 1 ? 'Deze foto kon niet worden toegevoegd' : "Deze foto's konden niet worden toegevoegd"); return; }
+		const cat = this.filter.categoryId && tl.categories.some((c) => c.id === this.filter.categoryId) ? this.filter.categoryId : tl.categories[0]?.id ?? '?';
+		const list = photoMoments(done, tl.id, cat, this.now, newId);
+		if (this.temp && tl.id === this.temp.id && !(await this.saveTimeline(this.temp))) return;
+		this.moments.push(...list);
+		try {
+			await this.backend.saveMoments(list);
+		} catch (e) {
+			const ids = new Set(list.map((m) => m.id));
+			this.moments = this.moments.filter((m) => !ids.has(m.id));
+			this.fail(e);
+			return;
+		}
+		const years = list.map((m) => parseDate(m.date).y), first = parseDate(list[0].date);
+		if (years.some((y) => y < this.scope.from || y > this.scope.to))
+			await this.setScope({ from: Math.min(this.scope.from, ...years), to: Math.max(this.scope.to, ...years) });
+		this.goTo(this.mode === 'year' ? first.y - this.scope.from : (first.y - this.scope.from) * 12 + first.m!, false);
+		const undated = done.filter((p) => !p.taken).length;
+		const photos = (n: number) => (n === 1 ? '1 foto' : `${n} foto's`);
+		this.toast(
+			`${photos(done.length)} toegevoegd${list.length > 1 ? ` in ${list.length} momenten` : ''}` +
+				(undated ? `. ${photos(undated)} zonder datum ${undated === 1 ? 'staat' : 'staan'} op vandaag` : '') +
+				(failed ? `. ${photos(failed)} lukte niet` : ''),
+			undefined, 5000
+		);
 	}
 
 	async deleteMoment(id: string) {
