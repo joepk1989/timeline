@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exifDate } from './exif';
+import { exifDate, fileNameDate } from './exif';
 import { printHtml, presentationHtml, slug } from './export';
 import { createZip, crc32, readZip } from './zip';
 import { demoTimeline } from './demo';
@@ -26,6 +26,20 @@ describe('files', () => {
 	it('reads the date a photo was taken', () => {
 		expect(exifDate(jpegWithDate('2024:07:15 10:11:12'))).toBe('2024-07-15');
 		expect(exifDate(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer)).toBeNull();
+	});
+	it('reads the date from a file name when the photo has none', () => {
+		expect(fileNameDate('PXL_20250812_134501234.jpg')).toBe('2025-08-12');
+		expect(fileNameDate('PXL_20250812_134501234.MP.jpg')).toBe('2025-08-12');
+		expect(fileNameDate('IMG_20240229_101010.jpg')).toBe('2024-02-29');
+		expect(fileNameDate('IMG-20250903-WA0007.jpg')).toBe('2025-09-03');
+		expect(fileNameDate('20250812_134501.jpg')).toBe('2025-08-12');
+		expect(fileNameDate('Screenshot_2025-08-12-13-45-10.png')).toBe('2025-08-12');
+		expect(fileNameDate('Foto 2025-08-12 13.45.10.jpg')).toBe('2025-08-12');
+		expect(fileNameDate('C:\\Downloads\\PXL_20250812_1.jpg')).toBe('2025-08-12');
+		expect(fileNameDate('IMG_1234.jpg')).toBeNull();
+		expect(fileNameDate('IMG_20230229_1.jpg')).toBeNull(); // no 29 February in 2023
+		expect(fileNameDate('vakantie.jpg')).toBeNull();
+		expect(fileNameDate('12345678901234.jpg')).toBeNull();
 	});
 	it('writes and reads a zip', async () => {
 		expect(crc32(new TextEncoder().encode('123456789'))).toBe(0xcbf43926);

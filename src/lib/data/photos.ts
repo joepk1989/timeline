@@ -1,6 +1,7 @@
-import { exifDate } from '$lib/domain/exif';
+import { exifDate, fileNameDate } from '$lib/domain/exif';
 
-/** Makes a photo at most 1600px on its longest side, as JPEG. Also returns the date it was taken, if known. */
+/** Makes a photo at most 1600px on its longest side, as JPEG. Also returns the date it was taken, if known:
+ * from EXIF, else from the file name (PXL_20250812_…). */
 export async function preparePhoto(file: File): Promise<{ blob: Blob; taken: string | null }> {
 	let taken: string | null = null;
 	try {
@@ -8,6 +9,7 @@ export async function preparePhoto(file: File): Promise<{ blob: Blob; taken: str
 	} catch {
 		/* no EXIF */
 	}
+	taken ??= fileNameDate(file.name);
 	try {
 		const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
 		const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));

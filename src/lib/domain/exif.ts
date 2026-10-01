@@ -54,3 +54,20 @@ function readTiff(v: DataView, t: number, end: number): string | null {
 	const dt = ifd0.get(0x0132);
 	return dt != null ? toDay(ascii(dt)) : null;
 }
+
+/**
+ * Reads the date from a photo's file name, for photos without EXIF: `PXL_20250812_…`, `IMG_20250812_…`,
+ * `IMG-20250812-WA0001` (WhatsApp), `20250812_134501` (Samsung), `Screenshot_2025-08-12-…`,
+ * `Foto 2025-08-12 13.45.10`. Returns `YYYY-MM-DD`, or null when there is no real date in it.
+ */
+export function fileNameDate(name: string): string | null {
+	const base = name.replace(/^.*[/\\]/, '');
+	const re = /(?:^|[^\d])((?:19|20)\d{2})[-_.]?(\d{2})[-_.]?(\d{2})(?!\d{3})/g;
+	for (let m = re.exec(base); m; m = re.exec(base)) {
+		const [y, mo, d] = [+m[1], +m[2], +m[3]];
+		if (mo < 1 || mo > 12 || d < 1) continue;
+		if (d > new Date(Date.UTC(y, mo, 0)).getUTCDate()) continue;
+		return `${m[1]}-${m[2]}-${m[3]}`;
+	}
+	return null;
+}
