@@ -76,6 +76,12 @@
 		}
 		return out;
 	}
+	/** Saves a file and says how it went; a "no" from the viewer needs no message. */
+	async function offer(name: string, data: Blob | string, done: string) {
+		const r = await download(name, data);
+		if (r === 'saved') app.toast(done, undefined, 4000);
+		else if (r === 'unavailable') app.toast('Bestanden opslaan kan hier niet. Open de app in een gewone browser.', undefined, 5000);
+	}
 	const stamp = () => formatDate(app.now.y, app.now.m, app.now.d);
 	async function run(fn: () => Promise<void>) {
 		if (busy) return;
@@ -85,27 +91,23 @@
 	}
 	const backup = () => run(async () => {
 		const zip = await app.backupZip((i, n) => (busy = `Foto's inpakken… ${i} van ${n}`));
-		download(`tijdlijn-backup-${stamp()}.zip`, new Blob([zip], { type: 'application/zip' }));
-		app.toast('Back-up gedownload');
+		await offer(`tijdlijn-backup-${stamp()}.zip`, new Blob([zip], { type: 'application/zip' }), 'Back-up gedownload');
 	});
 	const print = (withPhotos: boolean) => run(async () => {
 		const title = `${app.tl.name} · ${app.scope.from} – ${app.scope.to}${app.filter.categoryId ? ' · ' + app.catOf(app.filter.categoryId).name : ''}`;
 		const photos = withPhotos ? await photoMap(app.visible.flatMap((m) => m.photos)) : {};
-		download(`${slug(app.tl.name)}-${app.scope.from}-${app.scope.to}.html`, printHtml(app.tl, app.visible, app.scope, app.now, title, photos));
-		app.toast('Printversie gedownload. Open hem en kies Afdrukken.');
+		await offer(`${slug(app.tl.name)}-${app.scope.from}-${app.scope.to}.html`, printHtml(app.tl, app.visible, app.scope, app.now, title, photos), 'Printversie gedownload. Open hem en kies Afdrukken.');
 	});
 	const printLine = () => run(async () => {
 		const title = `${app.tl.name} · ${app.scope.from} – ${app.scope.to}`;
 		const photos = await photoMap(app.visible.flatMap((m) => m.photos));
-		download(`${slug(app.tl.name)}-jaarlijn-${app.scope.from}-${app.scope.to}.html`, printLineHtml(app.tl, app.visible, app.scope, title, photos));
-		app.toast('Printversie gedownload. Open hem en kies Afdrukken.');
+		await offer(`${slug(app.tl.name)}-jaarlijn-${app.scope.from}-${app.scope.to}.html`, printLineHtml(app.tl, app.visible, app.scope, title, photos), 'Printversie gedownload. Open hem en kies Afdrukken.');
 	});
 	const presentation = () => run(async () => {
 		const slides = buildSlides(app.visible, app.scope, app.year, app.now, { what: 'all', years: true, photos: true });
 		if (!slides.length) { app.toast('Er zijn nog geen momenten om te laten zien'); return; }
 		const photos = await photoMap(slides.flatMap((s) => (s.kind === 'moment' && s.photo ? [s.photo] : [])));
-		download(`${slug(app.tl.name)}-presentatie.html`, presentationHtml(app.tl, slides, app.scope, app.now, 8000, photos));
-		app.toast('Presentatie gedownload. Werkt ook zonder internet.');
+		await offer(`${slug(app.tl.name)}-presentatie.html`, presentationHtml(app.tl, slides, app.scope, app.now, 8000, photos), 'Presentatie gedownload. Werkt ook zonder internet.');
 	});
 	async function restore(e: Event) {
 		const input = e.currentTarget as HTMLInputElement;

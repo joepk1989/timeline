@@ -34,9 +34,33 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
 	});
 }
 
-/** Offers a file to save. */
-export function download(filename: string, data: Blob | string, type = 'text/html') {
+/** Inside a published Claude artifact the page may not download itself; the viewer's `downloads` capability saves for it. */
+type Saver = { save(r: { filename: string; data: Blob }): Promise<unknown> };
+async function claudeSaver(): Promise<Saver | null> {
+	const c = (globalThis as { claude?: { use?: (name: string) => Promise<unknown> } }).claude;
+	if (typeof c?.use !== 'function') return null;
+	try {
+		return (await c.use('downloads')) as Saver | null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Offers a file to save. `saved`: handed to the browser; `declined`: the viewer said no;
+ * `unavailable`: saving files is not possible here.
+ */
+export async function download(filename: string, data: Blob | string, type = 'text/html'): Promise<'saved' | 'declined' | 'unavailable'> {
 	const blob = typeof data === 'string' ? new Blob([data], { type: type + ';charset=utf-8' }) : data;
+	const saver = await claudeSaver();
+	if (saver) {
+		try {
+			await saver.save({ filename, data: blob });
+			return 'saved';
+		} catch (e) {
+			return (e as { code?: string }).code === 'declined' ? 'declined' : 'unavailable';
+		}
+	}
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
 	a.href = url;
@@ -45,4 +69,5 @@ export function download(filename: string, data: Blob | string, type = 'text/htm
 	a.click();
 	a.remove();
 	setTimeout(() => URL.revokeObjectURL(url), 10_000);
+	return 'saved';
 }
