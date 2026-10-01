@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
 import { occurrenceInYear } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { driftCards, yearPos, yearsSpans, dayLabel, yearAge, yearShort, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments } from './view';
+import { driftCards, yearPos, yearsSpans, dayLabel, yearAge, yearShort, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments , spreadAlong } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -193,5 +193,16 @@ describe('placeholder photos', () => {
 		expect(driftCards(7, 2027)).not.toEqual(a);
 		expect(a.every((c) => c.top >= 0 && c.top <= 1 && c.start >= 0 && c.start < 1 && c.secs >= 26 && c.secs <= 44 && Math.abs(c.tilt) <= 7)).toBe(true);
 		expect(new Set(a.map((c) => Math.floor(c.start * 7))).size).toBe(7);
+	});
+	it('spreads photos along the line without overlap, near their dates', () => {
+		expect(spreadAlong([50], 10)).toEqual([45]);
+		expect(spreadAlong([2], 10)).toEqual([0]);
+		expect(spreadAlong([99], 10)).toEqual([90]);
+		const l = spreadAlong([50, 50, 50], 10, 1);
+		expect(l).toEqual([34, 45, 56]); // pushed apart, centred on the date
+		const r = spreadAlong([98, 99, 100], 10, 1);
+		expect(r).toEqual([68, 79, 90]);
+		const order = spreadAlong([80, 10], 10);
+		expect(order).toEqual([75, 5]);
 	});
 });

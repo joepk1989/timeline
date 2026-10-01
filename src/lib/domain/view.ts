@@ -327,3 +327,29 @@ export function driftCards(n: number, seed: number): { top: number; size: number
 		hue: Math.round(rnd() * 360)
 	}));
 }
+
+/**
+ * Spreads things of width `w` along a line of 0..100 so they do not overlap, each as close to its
+ * wished centre as it can be. Returns the left edge of each, in the order given.
+ */
+export function spreadAlong(centres: number[], w: number, gap = 0): number[] {
+	const order = centres.map((c, i) => ({ c, i })).sort((a, b) => a.c - b.c || a.i - b.i);
+	const step = w + gap;
+	// Runs of things that touch, each placed where its members want to be on average.
+	type Run = { first: number; n: number; sum: number; left: number };
+	const runs: Run[] = [];
+	const place = (r: Run) => (r.left = Math.min(Math.max(r.sum / r.n, 0), 100 - (r.n * step - gap)));
+	order.forEach((o, k) => {
+		let run: Run = { first: k, n: 1, sum: o.c - w / 2, left: 0 };
+		place(run);
+		for (let prev = runs.at(-1); prev && prev.left + prev.n * step > run.left; prev = runs.at(-1)) {
+			runs.pop();
+			run = { first: prev.first, n: prev.n + run.n, sum: prev.sum + run.sum - run.n * prev.n * step, left: 0 };
+			place(run);
+		}
+		runs.push(run);
+	});
+	const out = new Array<number>(centres.length);
+	for (const r of runs) for (let k = 0; k < r.n; k++) out[order[r.first + k].i] = r.left + k * step;
+	return out;
+}
