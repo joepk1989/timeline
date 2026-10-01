@@ -6,7 +6,7 @@
 	import { ageLabel } from '$lib/domain/age';
 	import { covers, yearOccurrences } from '$lib/domain/occurrences';
 	import { monthOccurrences } from '$lib/domain/view';
-	import { printHtml, presentationHtml, slug } from '$lib/domain/export';
+	import { printHtml, printLineHtml, presentationHtml, slug } from '$lib/domain/export';
 	import { buildSlides } from '$lib/domain/slides';
 	import { blobToDataUrl, download } from '$lib/data/photos';
 	import Btn from './Btn.svelte';
@@ -92,6 +92,12 @@
 		const title = `${app.tl.name} · ${app.scope.from} – ${app.scope.to}${app.filter.categoryId ? ' · ' + app.catOf(app.filter.categoryId).name : ''}`;
 		const photos = withPhotos ? await photoMap(app.visible.flatMap((m) => m.photos)) : {};
 		download(`${slug(app.tl.name)}-${app.scope.from}-${app.scope.to}.html`, printHtml(app.tl, app.visible, app.scope, app.now, title, photos));
+		app.toast('Printversie gedownload. Open hem en kies Afdrukken.');
+	});
+	const printLine = () => run(async () => {
+		const title = `${app.tl.name} · ${app.scope.from} – ${app.scope.to}`;
+		const photos = await photoMap(app.visible.flatMap((m) => m.photos));
+		download(`${slug(app.tl.name)}-jaarlijn-${app.scope.from}-${app.scope.to}.html`, printLineHtml(app.tl, app.visible, app.scope, title, photos));
 		app.toast('Printversie gedownload. Open hem en kies Afdrukken.');
 	});
 	const presentation = () => run(async () => {
@@ -222,10 +228,11 @@
 				<Btn variant="ghost" onclick={() => file.click()} disabled={!!busy}>Zet back-up terug</Btn>
 				<Btn variant="ghost" onclick={() => print(false)} disabled={!!busy}>Printversie</Btn>
 				<Btn variant="ghost" onclick={() => print(true)} disabled={!!busy}>Printversie met foto's</Btn>
+				<Btn variant="ghost" onclick={printLine} disabled={!!busy}>Jaarlijn liggend met foto's</Btn>
 				<Btn variant="ghost" onclick={presentation} disabled={!!busy}>Presentatie als bestand</Btn>
 				<input type="file" accept=".json,.zip,application/json,application/zip" hidden bind:this={file} onchange={restore} />
 			</div>
-			<p class="note" aria-live="polite">{busy || "De back-up is een zip met al je tijdlijnen, momenten en foto's. Terugzetten voegt ze samen met wat er al staat. De printversie en de presentatie zijn losse bestanden die je kunt delen of printen als PDF."}</p>
+			<p class="note" aria-live="polite">{busy || "De back-up is een zip met al je tijdlijnen, momenten en foto's. Terugzetten voegt ze samen met wat er al staat. De printversies en de presentatie zijn losse bestanden die je kunt delen of printen als PDF."}</p>
 		</section>
 
 		<section class="box" aria-labelledby="h-acc">

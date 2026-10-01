@@ -1,10 +1,10 @@
-import { labelFull, MONTHS, season } from './dates';
+import { daysInMonth, labelFull, MONTHS, MONTHS_SHORT, season } from './dates';
 import { KINDS, STATUSES } from './kinds';
 import { whenLabel, yearOccurrences, isOverdue } from './occurrences';
 import { yearLine } from './age';
 import type { Slide } from './slides';
 import type { Day, Moment, Timeline } from './types';
-import { relParts, type Scope } from './view';
+import { momentsLabel, packRows, relParts, yearLines, type Scope } from './view';
 
 export const esc = (s: unknown) =>
 	String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -53,6 +53,70 @@ section{break-inside:avoid-page}table{width:100%;border-collapse:collapse}td{ver
 .p{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.p img{height:140px;max-width:100%;border-radius:4px;object-fit:cover}
 .hint{color:#5E6A76;font-size:14px}@media print{body{margin:0}h2{break-after:avoid}.hint{display:none}}
 </style></head><body><p class="hint">Tip: kies Afdrukken in je browser en dan "Opslaan als PDF".</p><h1>${esc(title)}</h1>${body || '<p>Geen momenten in deze periode.</p>'}</body></html>`;
+}
+
+const SEASON_COLORS = { winter: '#6e9cc4', lente: '#7db35a', zomer: '#edb032', herfst: '#9c5b2e' };
+
+/**
+ * A printable page per year, landscape: the year on top, a row of its photos, and the Jaarlijn below,
+ * the months as columns and each moment as a block lying on its days.
+ */
+export function printLineHtml(tl: Timeline, visible: Moment[], scope: Scope, title: string, photos: PhotoMap = {}): string {
+	const PAGE_MM = 277; // A4 landscape minus the margins
+	let body = '';
+	for (let y = scope.from; y <= scope.to; y++) {
+		const occs = yearOccurrences(visible, y);
+		const real = occs.filter((o) => !o.moment.virtual);
+		if (!real.length) continue;
+		const { days, items } = yearLines(occs, y);
+		const pics = real.flatMap((o) => o.moment.photos.filter((p) => photos[p]).map((p) => ({ src: photos[p], o }))).slice(0, 10);
+		const charMm = pics.length ? 1.5 : 2.25; // text is larger on a page without photos
+		// Each block is at least as wide as its text, so names do not run into each other.
+		const boxes = items.map((it) => {
+			const chars = Math.max(it.o.moment.title.length + 3, whenLabel(it.o).length);
+			const width = Math.max(((it.to - it.from + 1) / days) * 100, Math.min(30, ((chars * charMm + 5) / PAGE_MM) * 100));
+			// Near the end of the year the block grows to the left, so it stays on the page.
+			const left = Math.min((it.from / days) * 100, 100 - width);
+			return { left, right: left + width };
+		});
+		const { rows, count } = packRows(boxes, 0.4);
+		const yl = yearLine(tl, y);
+		let months = '', cols = '', start = 0;
+		for (let m = 0; m < 12; m++) {
+			const w = (daysInMonth(y, m) / days) * 100;
+			months += `<div class="mo" style="left:${start}%;width:${w}%;background:${SEASON_COLORS[season(m)]}${season(m) === 'herfst' ? ';color:#fff' : ''}"><b>${String(m + 1).padStart(2, '0')}</b> ${MONTHS[m]}</div>`;
+			cols += `<div class="col" style="left:${start}%;width:${w}%"></div>`;
+			start += w;
+		}
+		const blocks = items.map((it, i) => {
+			const b = boxes[i], mo = it.o.moment;
+			return `<div class="b${mo.virtual ? ' v' : ''}" style="grid-row:${rows[i] + 1};margin-left:${b.left}%;width:${b.right - b.left}%">`
+				+ `<span class="t">${esc(mo.emoji)} ${esc(mo.title)}</span><span class="d">${esc(whenLabel(it.o))}</span></div>`;
+		}).join('');
+		body += `<section class="pg${pics.length ? '' : ' nopics'}"><header><h2>${y}</h2><span>${yl ? `<em>${esc(yl)}</em> · ` : ''}${momentsLabel(real.length)}</span></header>`
+			+ (pics.length ? `<div class="ph">${pics.map((p) => `<figure><img src="${esc(p.src)}" alt=""><figcaption>${p.o.m == null ? '' : `${p.o.d ?? ''} ${MONTHS_SHORT[p.o.m]} · `}${esc(p.o.moment.title)}</figcaption></figure>`).join('')}</div>` : '')
+			+ `<div class="line"><div class="bar">${months}</div><div class="body">${cols}<div class="rows" style="--n:${count};grid-template-rows:repeat(${count},minmax(0,11mm))">${blocks}</div></div></div></section>`;
+	}
+	return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>
+@page{size:A4 landscape;margin:10mm}
+*{box-sizing:border-box}html,body{margin:0}body{font-family:"Helvetica Neue",Arial,sans-serif;color:#1D2733;background:#e9ebee;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hint{max-width:277mm;margin:16px auto 0;color:#5E6A76;font-size:14px}
+.pg{width:277mm;height:190mm;margin:16px auto;padding:0;background:#fff;display:flex;flex-direction:column;gap:4mm;overflow:hidden;break-after:page}
+.pg:last-child{break-after:auto}
+header{display:flex;align-items:baseline;gap:5mm}h2{margin:0;font-size:30mm;line-height:.85;letter-spacing:-.05em;font-weight:800}header span{color:#5E6A76;font-size:11pt}header em{font-style:normal;color:#2B4A7E;font-weight:600}
+.ph{flex:1 1 0;min-height:0;display:flex;gap:2.5mm}
+figure{margin:0;flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:1mm}figure img{flex:1 1 0;min-height:0;width:100%;object-fit:cover;border-radius:1.5mm}
+figcaption{font-size:7.5pt;color:#5E6A76;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{flex:0 1 auto;display:flex;flex-direction:column;min-height:40mm}
+.bar{position:relative;height:8mm}.mo{position:absolute;top:0;bottom:0;padding:0 1.5mm;display:flex;align-items:center;gap:1mm;font-size:8pt;color:#1D2733;white-space:nowrap;overflow:hidden;border-right:.3mm solid #fff}
+.body{position:relative;flex:1;min-height:30mm;padding:2mm 0}.col{position:absolute;top:0;bottom:0;border-right:.2mm solid #dde1e5}
+.rows{position:relative;display:grid;grid-template-columns:100%;row-gap:1.2mm}
+.b{grid-column:1;min-width:0;border:.3mm solid #1D2733;border-radius:2mm;background:#fff;padding:.6mm 1.6mm;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.nopics .line{flex:1}.nopics .bar{height:10mm}.nopics .mo{font-size:10pt}.nopics .rows{grid-template-rows:repeat(var(--n),minmax(0,16mm))!important}.nopics .t{font-size:10pt}.nopics .d{font-size:8.5pt}.nopics .b{padding:1mm 2.5mm;border-radius:2.5mm}
+.b.v{border-color:#b9c0c7;color:#5E6A76}
+.t{font-size:7.5pt;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.d{font-size:6.5pt;color:#5E6A76;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media print{body{background:none}.hint{display:none}.pg{margin:0}}
+</style></head><body><p class="hint">Tip: kies Afdrukken in je browser. De pagina's staan al liggend; kies "Opslaan als PDF" voor een PDF.</p>${body || '<p class="hint">Geen momenten in deze periode.</p>'}</body></html>`;
 }
 
 /** Data for one slide in the standalone presentation file. */

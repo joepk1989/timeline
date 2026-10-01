@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { exifDate, fileNameDate } from './exif';
-import { printHtml, presentationHtml, slug } from './export';
+import { printHtml, printLineHtml, presentationHtml, slug } from './export';
 import { createZip, crc32, readZip } from './zip';
 import { demoTimeline } from './demo';
 import { buildSlides } from './slides';
@@ -59,6 +59,15 @@ describe('files', () => {
 		const html = printHtml(timeline, all, timeline.scope, now, 'Test');
 		expect(html).toContain('&lt;script&gt;x&lt;/script&gt;');
 		expect(html).toContain('<h2>2026');
+		const photo = moments.find((m) => m.date.startsWith('2026'))!;
+		photo.photos = ['p1'];
+		const line = printLineHtml(timeline, all, timeline.scope, 'Test', { p1: 'data:image/png;base64,AA' });
+		expect(line).toContain('size:A4 landscape');
+		expect(line).toContain('&lt;script&gt;x&lt;/script&gt;');
+		expect(line).not.toContain('<script>x</script>');
+		expect(line).toContain('<h2>2026</h2>');
+		expect(line).toContain('src="data:image/png;base64,AA"');
+		expect(line.match(/class="mo"/g)!.length % 12).toBe(0);
 		const slides = buildSlides(all, timeline.scope, 2026, now, { what: 'all', years: true, photos: false });
 		const show = presentationHtml(timeline, slides, timeline.scope, now, 5000);
 		expect(show).not.toContain('<script>x</script>');
