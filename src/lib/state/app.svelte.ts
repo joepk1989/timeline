@@ -5,7 +5,7 @@ import { today } from '$lib/domain/dates';
 import { demoTimeline } from '$lib/domain/demo';
 import { addMissingFestivalPhotos, demoPhotoSvg, festivalTimeline, isDemoPhoto } from '$lib/domain/festivals';
 import { isScales, scalesTimeline } from '$lib/domain/scales';
-import { weekDemo } from '$lib/domain/week';
+import { weekDemo, weekDemoStale } from '$lib/domain/week';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -227,8 +227,9 @@ class AppState {
 		this.toast('Je volgt deze tijdlijn niet meer');
 	}
 
-	/** A festival demo loaded before the demo had photos gets its placeholder photos. */
+	/** A festival demo loaded before the demo had photos gets its placeholder photos; the week demo moves to this week. */
 	private async upgradeDemos() {
+		for (const t of this.timelines) if (this.roles[t.id] === 'owner' && weekDemoStale(t, this.moments, this.now)) await this.refreshWeekDemo(t);
 		const fixed = this.timelines.flatMap((t) => (this.roles[t.id] === 'owner' ? addMissingFestivalPhotos(t, this.moments) : []));
 		if (!fixed.length) return;
 		const byId = new Map(fixed.map((m) => [m.id, m]));
@@ -236,11 +237,31 @@ class AppState {
 		await this.backend.saveMoments(fixed).catch(() => {});
 	}
 
+	/** The week demo, made anew for the week of today (with times of day), in the timeline it already has. */
+	private async refreshWeekDemo(t: Timeline) {
+		const old = this.moments.filter((m) => m.timelineId === t.id);
+		const fresh = weekDemo(this.now, newId).moments.map((m) => ({ ...m, timelineId: t.id }));
+		this.moments = this.moments.filter((m) => m.timelineId !== t.id).concat(fresh);
+		try {
+			for (const m of old) await this.backend.deleteMoment(m.id);
+			await this.backend.saveMoments(fresh);
+		} catch (e) {
+			this.fail(e);
+		}
+	}
+
 	/** Loads a demo: a whole life, the festivals in the Netherlands for the coming ten years, the time scales, or one full week. */
 	async loadDemo(which: 'leven' | 'festivals' | 'tijdschalen' | 'week' = 'leven') {
 		const { timeline, moments } = ({ leven: demoTimeline, festivals: festivalTimeline, tijdschalen: scalesTimeline, week: weekDemo })[which](this.now, newId);
 		const existing = this.timelines.find((t) => t.demo && t.name === timeline.name);
 		if (existing) {
+			// The week demo is always this week: choosing it again makes it anew.
+			if (which === 'week' && this.roles[existing.id] === 'owner') {
+				await this.refreshWeekDemo(existing);
+				this.switchTo(existing.id);
+				this.toast('De weekdemo is bijgewerkt naar deze week');
+				return;
+			}
 			this.switchTo(existing.id);
 			this.toast('De demo staat er al');
 			return;

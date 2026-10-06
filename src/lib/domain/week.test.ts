@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { weekDemo, weekStart } from './week';
+import { weekDemo, weekDemoStale, weekStart } from './week';
 import { dayMoments, dayPlan } from './view';
 import { yearOccurrences } from './occurrences';
 
@@ -28,5 +28,14 @@ describe('week demo', () => {
 		const { moments } = weekDemo({ y: 2026, m: 11, d: 31 }, () => 'x');
 		const dates = new Set(moments.filter((m) => !m.repeat).map((m) => m.date));
 		expect([...dates].sort()).toEqual(['2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31', '2027-01-01', '2027-01-02', '2027-01-03']);
+	});
+	it('knows when the week demo is out of date', () => {
+		const now = { y: 2026, m: 9, d: 6 };
+		const { timeline, moments } = weekDemo(now, () => Math.random().toString(36));
+		expect(weekDemoStale(timeline, moments, now)).toBe(false);
+		expect(weekDemoStale(timeline, moments, { y: 2026, m: 9, d: 11 })).toBe(false); // the Sunday of the same week
+		expect(weekDemoStale(timeline, moments, { y: 2026, m: 9, d: 12 })).toBe(true); // the next Monday
+		expect(weekDemoStale(timeline, moments.map((m) => ({ ...m, time: null, endTime: null })), now)).toBe(true); // from before times
+		expect(weekDemoStale({ ...timeline, name: 'Mijn week' }, [], now)).toBe(false);
 	});
 });

@@ -79,3 +79,13 @@ export function weekDemo(now: Day, makeId: () => string): { timeline: Timeline; 
 	}));
 	return { timeline, moments };
 }
+
+/** Is this the week demo, and out of date: from another week, or from before moments had times of day? */
+export function weekDemoStale(tl: Timeline, moments: Moment[], now: Day): boolean {
+	if (!tl.demo || tl.name !== WEEK_DEMO_NAME) return false;
+	const own = moments.filter((m) => m.timelineId === tl.id && !m.repeat);
+	if (!own.length) return true;
+	const mon = weekStart(now);
+	const first = own.map((m) => m.date).sort()[0];
+	return first !== formatDate(mon.y, mon.m, mon.d) || !own.some((m) => m.time);
+}
