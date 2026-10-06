@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { dayNumber, daysInMonth, formatDate, labelFull, MONTHS, parseDate } from '$lib/domain/dates';
+	import { dayNumber, daysInMonth, formatDate, labelFull, MONTHS, parseDate, parseTime } from '$lib/domain/dates';
 	import { ageLabel, yearLine } from '$lib/domain/age';
 	import { STATUSES } from '$lib/domain/kinds';
 	import { newId } from '$lib/data/backend';
@@ -33,6 +33,9 @@
 	let period = $state(!!prev?.end);
 	let endY = $state<number | null>(e?.y ?? null), endM = $state(e?.m ?? 0), endD = $state<number | null>(e?.d ?? null);
 	let repeat = $state(!!prev?.repeat);
+	// A time of day, only on a day: when it starts, and when it ends (that day, or the last day of a period).
+	let time = $state(prev?.time ?? req.time ?? '');
+	let endTime = $state(prev?.endTime ?? '');
 	let photos = $state<string[]>(prev?.photos.slice() ?? []);
 	let fresh: string[] = [], removed: string[] = [];
 	let busy = $state(0);
@@ -128,9 +131,12 @@
 			if (dayNumber(endY, endM, endD) <= dayNumber(y, m!, d!)) { app.toast('De einddatum moet na de begindatum liggen'); return; }
 			end = formatDate(endY, endM, endD);
 		}
+		const t0 = lvl === 'd' ? parseTime(time) : null, t1 = lvl === 'd' ? parseTime(endTime) : null;
+		if (!end && t0 != null && t1 != null && t1 <= t0) { app.toast('De eindtijd moet na de begintijd liggen'); return; }
 		const mo: Moment = {
 			id: prev?.id ?? newId(), timelineId: prev?.timelineId ?? app.tl.id, title: t, note: note.trim(), emoji, categoryId: cat,
-			date: formatDate(y, m, d), end, repeat: lvl !== 'y' && !end && repeat, status: status ?? null, photos: photos.slice()
+			date: formatDate(y, m, d), end, repeat: lvl !== 'y' && !end && repeat, status: status ?? null, photos: photos.slice(),
+			time: t0 != null ? time : null, endTime: t1 != null ? endTime : null
 		};
 		saved = true;
 		const gone = removed.slice();
@@ -188,6 +194,14 @@
 					<label class="field">Jaar<input type="number" class="w-year" min="1000" max="3000" inputmode="numeric" bind:value={year} oninput={() => (dateTouched = true)} /></label>
 				</div>
 				{#if age}<span class="ageline">{age}</span>{/if}
+				{#if lvl === 'd'}
+					<div class="row">
+						<label class="field">{period ? 'Begint om' : 'Van'}<input type="time" class="w-time" bind:value={time} /></label>
+						<label class="field">{period ? 'Eindigt om' : 'Tot'}<input type="time" class="w-time" bind:value={endTime} /></label>
+						{#if time || endTime}<button type="button" class="clear" onclick={() => ((time = ''), (endTime = ''))}>Hele dag</button>{/if}
+					</div>
+					{#if !time && !endTime}<span class="hint">Zonder tijd duurt het de hele dag.</span>{/if}
+				{/if}
 			</div>
 			<label class="check"><input type="checkbox" bind:checked={period} onchange={togglePeriod} />Periode: duurt langer dan één dag</label>
 			{#if lvl === 'd' && period}
@@ -238,6 +252,9 @@
 </Dialog>
 
 <style>
+	.hint { font-size: 12px; color: var(--muted); }
+	.clear { align-self: flex-end; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; }
+	@media (hover: hover) { .clear:hover { background: var(--hover); } }
 	.emojis { display: flex; flex-wrap: wrap; gap: 6px; }
 	.emojis button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: transparent; font-size: 19px; cursor: pointer; }
 	.emojis button.on { border: 2px solid var(--ink); background: var(--bg); }

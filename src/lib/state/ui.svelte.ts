@@ -8,7 +8,7 @@ export interface GalleryItem {
 /** Which sheets and dialogs are open, and with what. */
 class UiState {
 	menu = $state<{ y: number; m: number | null } | null>(null);
-	editor = $state<{ id: string | null; y: number; m: number | null; d: number | null } | null>(null);
+	editor = $state<{ id: string | null; y: number; m: number | null; d: number | null; time?: string } | null>(null);
 	day = $state<{ y: number; m: number; d: number } | null>(null);
 	picker = $state(false);
 	tlEdit = $state<{ id: string | null; first: boolean } | null>(null);

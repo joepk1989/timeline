@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { weekDemo, weekStart } from './week';
-import { dayMoments } from './view';
+import { dayMoments, dayPlan } from './view';
 import { yearOccurrences } from './occurrences';
 
 describe('week demo', () => {
@@ -19,7 +19,10 @@ describe('week demo', () => {
 		const occs = yearOccurrences(moments, 2026);
 		for (let d = 5; d <= 11; d++) expect(dayMoments(occs, 2026, 9, d).length).toBeGreaterThanOrEqual(4);
 		// The congress runs Wednesday to Friday.
-		expect(moments.find((m) => m.title.includes('Gent'))).toMatchObject({ date: '2026-10-07', end: '2026-10-09' });
+		expect(moments.find((m) => m.title.includes('Gent'))).toMatchObject({ date: '2026-10-07', end: '2026-10-09', time: '07:00', endTime: '18:30' });
+		// Most of the week is at a time of day, so the day view lays it out on its hours.
+		const plan = dayPlan(occs, 2026, 9, 5);
+		expect(plan.timed.map((t) => t.label)).toEqual(['08:15–08:40', '09:00–09:30', '10:00–12:30', '17:30–18:30', '18:45–19:30']);
 	});
 	it('keeps a week that runs into the new year whole', () => {
 		const { moments } = weekDemo({ y: 2026, m: 11, d: 31 }, () => 'x');

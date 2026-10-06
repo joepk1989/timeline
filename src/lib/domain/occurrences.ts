@@ -92,3 +92,10 @@ export function countdown(o: Occurrence, now: Day): string | null {
 	} else if (diff === 0) return 'vandaag';
 	return diff > 0 && diff <= 365 ? `over ${diff} ${diff === 1 ? 'dag' : 'dagen'}` : null;
 }
+
+/** The date with its time of day, when it has one: "5 okt · 09:00", "5 okt · 09:00–10:30". */
+export function whenTimeLabel(o: Occurrence): string {
+	const t = o.d != null ? o.moment.time : null;
+	if (!t) return whenLabel(o);
+	return `${whenLabel(o)} · ${t}${o.moment.endTime && !o.end ? `–${o.moment.endTime}` : ''}`;
+}

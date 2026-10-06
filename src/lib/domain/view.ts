@@ -1,5 +1,5 @@
 import { ageLabel } from './age';
-import { dayNumber, daysBetween, daysInMonth, parseDate, WEEKDAYS, WEEKDAYS_SHORT } from './dates';
+import { dayNumber, daysBetween, daysInMonth, formatTime, parseDate, parseTime, WEEKDAYS, WEEKDAYS_SHORT } from './dates';
 import { KINDS } from './kinds';
 import { covers, inMonth, isOverdue, virtualMoments } from './occurrences';
 import type { Day, Moment, Occurrence, Status, Timeline } from './types';
@@ -352,4 +352,42 @@ export function spreadAlong(centres: number[], w: number, gap = 0): number[] {
 	const out = new Array<number>(centres.length);
 	for (const r of runs) for (let k = 0; k < r.n; k++) out[order[r.first + k].i] = r.left + k * step;
 	return out;
+}
+
+/** A moment with a time, placed on the hours of one day: minutes since midnight, clipped to the day. */
+export interface TimedItem {
+	o: Occurrence;
+	from: number;
+	to: number;
+	/** "09:00–10:30", "09:00" (no end given), "tot 17:00" or "vanaf 20:00" (runs on from or into another day). */
+	label: string;
+	/** Runs on from the day before, or into the next. */
+	before: boolean;
+	after: boolean;
+}
+
+/**
+ * One day's moments split in two: those with a time of day, placed on its hours, and the rest, which take
+ * the whole day. A period with a time starts at that time on its first day and ends at its end time on its last;
+ * the days in between, or a period without times, count as whole days.
+ */
+export function dayPlan(occs: Occurrence[], y: number, m: number, d: number): { allDay: Occurrence[]; timed: TimedItem[] } {
+	const here = dayNumber(y, m, d);
+	const allDay: Occurrence[] = [], timed: TimedItem[] = [];
+	for (const o of dayMoments(occs, y, m, d)) {
+		const { from, to } = spanOf(o);
+		const first = dayNumber(from.y, from.m, from.d) === here, last = dayNumber(to.y, to.m, to.d) === here;
+		const start = o.d != null && first ? parseTime(o.moment.time) : null;
+		const a = start ?? 0;
+		let end = o.d != null && last ? parseTime(o.moment.endTime) : null;
+		if (end != null && end <= a) end = null; // an end before its start counts as no end
+		if (start == null && end == null) { allDay.push(o); continue; }
+		const b = end ?? (last ? Math.min(a + 60, 24 * 60) : 24 * 60);
+		const label = start != null && end != null ? `${formatTime(a)}–${formatTime(b)}`
+			: start != null ? (last ? formatTime(a) : `vanaf ${formatTime(a)}`)
+			: `tot ${formatTime(b)}`;
+		timed.push({ o, from: a, to: b, label, before: !first, after: !last });
+	}
+	timed.sort((p, q) => p.from - q.from || q.to - p.to);
+	return { allDay, timed };
 }

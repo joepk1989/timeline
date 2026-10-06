@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
-import { countdown, covers, isOverdue, occurrenceInYear, virtualMoments, whenLabel, yearOccurrences } from './occurrences';
+import { countdown, covers, isOverdue, occurrenceInYear, virtualMoments, whenLabel, whenTimeLabel, yearOccurrences } from './occurrences';
 import { KINDS } from './kinds';
 import type { Moment, Timeline } from './types';
 
@@ -50,5 +50,13 @@ describe('occurrences', () => {
 		for (let y = timeline.scope.from; y <= timeline.scope.to; y++) {
 			expect(yearOccurrences(all, y).length, `year ${y}`).toBeGreaterThan(0);
 		}
+	});
+	it('adds the time of day to the date', () => {
+		const base = { id: 'a', timelineId: 't', title: 'x', note: '', emoji: '', categoryId: 'c', end: null, repeat: false, status: null, photos: [] };
+		const at = (extra: object) => yearOccurrences([{ ...base, date: '2026-10-05', ...extra }], 2026)[0];
+		expect(whenTimeLabel(at({}))).toBe('5 okt');
+		expect(whenTimeLabel(at({ time: '09:00' }))).toBe('5 okt · 09:00');
+		expect(whenTimeLabel(at({ time: '09:00', endTime: '10:30' }))).toBe('5 okt · 09:00–10:30');
+		expect(whenTimeLabel(yearOccurrences([{ ...base, date: '2026-10', time: '09:00' }], 2026)[0])).toBe('oktober');
 	});
 });

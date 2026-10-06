@@ -7,7 +7,7 @@
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, MONTHS_SHORT, WEEKDAYS, season } from '$lib/domain/dates';
-	import { whenLabel, yearOccurrences } from '$lib/domain/occurrences';
+	import { whenLabel, whenTimeLabel, yearOccurrences } from '$lib/domain/occurrences';
 	import { yearPos, yearsSpans, dayLabel, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import DayLine from './DayLine.svelte';
@@ -137,7 +137,7 @@
 			const from = x(it.from);
 			const days = Math.max(4, x(it.to + 1) - from - 2);
 			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? `700 ${font}px` : '600 14px');
-			const text = (compact ? name : Math.max(name, textWidth(whenLabel(it.o), '12px') + 14)) + (compact ? 20 * K + 12 : 36);
+			const text = (compact ? name : Math.max(name, textWidth(whenTimeLabel(it.o), '12px') + 14)) + (compact ? 20 * K + 12 : 36);
 			// As wide as its days, and at least as wide as its name (up to a limit): a whole year spans the year.
 			const w = Math.min(Math.max(days, Math.min(text, compact ? font * 18 : 280)), full);
 			const left = Math.max(0, Math.min(from, full - w));
@@ -509,7 +509,7 @@
 				>
 					<span class="days" style:left="{b.from - b.left}px" style:width="{b.days}px" aria-hidden="true"></span>
 					<span class="l1"><span class="e">{b.it.o.moment.emoji}</span> <span class="t">{b.it.o.moment.title}</span></span>
-					{#if !compact}<span class="l2"><span class="sq" aria-hidden="true"></span>{whenLabel(b.it.o)}</span>{/if}
+					{#if !compact}<span class="l2"><span class="sq" aria-hidden="true"></span>{whenTimeLabel(b.it.o)}</span>{/if}
 				</button>
 			{/if}
 		{/each}

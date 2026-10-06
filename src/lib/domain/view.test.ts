@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { demoTimeline } from './demo';
-import { occurrenceInYear } from './occurrences';
+import { occurrenceInYear, yearOccurrences } from './occurrences';
 import type { Moment, Timeline } from './types';
-import { driftCards, yearPos, yearsSpans, dayLabel, yearAge, yearShort, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments , spreadAlong } from './view';
+import { driftCards, yearPos, yearsSpans, dayLabel, yearAge, yearShort, dayMoments, dayOfYear, partSpans, partX, spanOf, monthSpans, packRows, sunHeight, yearX, yearLines, monthBars, monthGrid, clampScope, countInScope, defaultScope, isFuture, pickStartYear, relParts, visibleMoments , spreadAlong , dayPlan } from './view';
 
 const now = { y: 2026, m: 8, d: 26 };
 const tl: Timeline = { id: 't', name: 'Emma', kind: 'kind', anchor: '2022-03-14', categories: [], scope: { from: 2022, to: 2027 } };
@@ -204,5 +204,31 @@ describe('placeholder photos', () => {
 		expect(r).toEqual([68, 79, 90]);
 		const order = spreadAlong([80, 10], 10);
 		expect(order).toEqual([75, 5]);
+	});
+	it('places the moments with a time on the hours of their day, the rest take the whole day', () => {
+		const mk = (id: string, date: string, extra: Partial<Moment> = {}): Moment => ({
+			id, timelineId: 't', title: id, note: '', emoji: '', categoryId: 'x', date, end: null, repeat: false, status: null, photos: [], ...extra
+		});
+		const ms = [
+			mk('allday', '2026-10-07'),
+			mk('meeting', '2026-10-07', { time: '09:00', endTime: '10:30' }),
+			mk('dentist', '2026-10-07', { time: '14:15' }),
+			mk('trip', '2026-10-06', { end: '2026-10-08', time: '20:00', endTime: '17:00' }),
+			mk('bad', '2026-10-07', { time: '18:00', endTime: '17:00' }),
+			mk('late', '2026-10-07', { time: '23:30' })
+		];
+		const occs = yearOccurrences(ms, 2026);
+		const wed = dayPlan(occs, 2026, 9, 7);
+		expect(wed.allDay.map((o) => o.moment.id).sort()).toEqual(['allday', 'trip']); // the middle day of the trip
+		expect(wed.timed.map((t) => [t.o.moment.id, t.from, t.to, t.label])).toEqual([
+			['meeting', 540, 630, '09:00–10:30'],
+			['dentist', 855, 915, '14:15'],
+			['bad', 1080, 1140, '18:00'],
+			['late', 1410, 1440, '23:30']
+		]);
+		const tue = dayPlan(occs, 2026, 9, 6).timed[0];
+		expect([tue.from, tue.to, tue.label, tue.before, tue.after]).toEqual([1200, 1440, 'vanaf 20:00', false, true]);
+		const thu = dayPlan(occs, 2026, 9, 8).timed[0];
+		expect([thu.from, thu.to, thu.label, thu.before, thu.after]).toEqual([0, 1020, 'tot 17:00', true, false]);
 	});
 });

@@ -25,6 +25,8 @@ interface MomentRow {
 	repeat: boolean;
 	status: Status | null;
 	photos: string[];
+	start_time: string | null;
+	end_time: string | null;
 }
 
 const toTimeline = (r: TimelineRow): Timeline => ({
@@ -37,11 +39,12 @@ const fromTimeline = (t: Timeline) => ({
 });
 const toMoment = (r: MomentRow): Moment => ({
 	id: r.id, timelineId: r.timeline_id, title: r.title, note: r.note, emoji: r.emoji, categoryId: r.category_id,
-	date: r.date, end: r.end_date, repeat: r.repeat, status: r.status, photos: r.photos ?? []
+	date: r.date, end: r.end_date, repeat: r.repeat, status: r.status, photos: r.photos ?? [], time: r.start_time ?? null, endTime: r.end_time ?? null
 });
 const fromMoment = (m: Moment) => ({
 	id: m.id, timeline_id: m.timelineId, title: m.title, note: m.note, emoji: m.emoji, category_id: m.categoryId,
-	date: m.date, end_date: m.end, repeat: m.repeat, status: m.status, photos: m.photos, updated_at: new Date().toISOString()
+	date: m.date, end_date: m.end, repeat: m.repeat, status: m.status, photos: m.photos, start_time: m.time ?? null, end_time: m.endTime ?? null,
+	updated_at: new Date().toISOString()
 });
 
 function check<T>(r: { data: T; error: { message: string } | null }): T {

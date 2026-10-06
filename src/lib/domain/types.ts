@@ -41,6 +41,10 @@ export interface Moment {
 	status: Status | null;
 	/** Storage paths of photos. */
 	photos: string[];
+	/** Time of day `HH:MM`, only with day precision. On a period, the time it starts on its first day. */
+	time?: string | null;
+	/** Time it ends `HH:MM`: on the same day, or on the last day of a period. */
+	endTime?: string | null;
 	/** Generated moments (birth, yearly birthday) that are not stored. */
 	virtual?: boolean;
 	anniversary?: boolean;

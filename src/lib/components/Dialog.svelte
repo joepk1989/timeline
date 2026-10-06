@@ -45,6 +45,8 @@
 	.card :global(.field) { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
 	.card :global(.w-day) { width: 72px; }
 	.card :global(.w-year) { width: 96px; }
+	.card :global(.w-time) { width: 136px; }
+	.card :global(input[type='time']) { padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font: inherit; font-size: 16px; color: var(--ink); }
 	.card :global(.check), .card :global(.dlg > label.check) { display: flex; flex-direction: row; align-items: center; gap: 10px; font-size: 15px; color: var(--ink); }
 	.card :global(.check input) { width: 20px; height: 20px; accent-color: var(--accent); }
 	.card :global(.picks) { display: flex; flex-wrap: wrap; gap: 6px; }

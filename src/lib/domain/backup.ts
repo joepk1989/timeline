@@ -1,4 +1,4 @@
-import { isDate, parseDate } from './dates';
+import { isDate, parseDate, parseTime } from './dates';
 import { KINDS, STATUSES } from './kinds';
 import type { Category, Day, Moment, Status, Timeline, TimelineKind } from './types';
 import { defaultScope } from './view';
@@ -53,7 +53,10 @@ export function normalizeMoment(raw: unknown, id: string, timelineId: string): M
 		end,
 		repeat: !!raw.repeat && s.m != null && !end,
 		status,
-		photos: Array.isArray(raw.photos) ? raw.photos.filter((p): p is string => typeof p === 'string' && p.length < 300) : []
+		photos: Array.isArray(raw.photos) ? raw.photos.filter((p): p is string => typeof p === 'string' && p.length < 300) : [],
+		// A time of day only on a day, and only when there is one.
+		...(s.d != null && parseTime(raw.time) != null ? { time: raw.time as string } : {}),
+		...(s.d != null && parseTime(raw.endTime) != null ? { endTime: raw.endTime as string } : {})
 	};
 }
 

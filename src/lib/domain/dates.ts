@@ -51,3 +51,13 @@ export function labelFull(y: number, m: number | null, d: number | null): string
 export function daysBetween(a: Day, b: Day): number {
 	return Math.round((Date.UTC(b.y, b.m, b.d) - Date.UTC(a.y, a.m, a.d)) / 86_400_000);
 }
+
+/** `HH:MM` as minutes since midnight, or null when it is no valid time. */
+export function parseTime(s: unknown): number | null {
+	if (typeof s !== 'string') return null;
+	const m = /^(\d{1,2}):(\d{2})$/.exec(s);
+	if (!m || +m[1] > 23 || +m[2] > 59) return null;
+	return +m[1] * 60 + +m[2];
+}
+/** Minutes since midnight as `HH:MM` (24:00 for the end of the day). */
+export const formatTime = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(Math.round(min % 60)).padStart(2, '0')}`;

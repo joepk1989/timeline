@@ -3,7 +3,7 @@
 	import { ui } from '$lib/state/ui.svelte';
 	import { labelFull, season } from '$lib/domain/dates';
 	import { STATUSES } from '$lib/domain/kinds';
-	import { whenLabel } from '$lib/domain/occurrences';
+	import { whenTimeLabel } from '$lib/domain/occurrences';
 	import { relParts } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import Photo from './Photo.svelte';
@@ -28,7 +28,7 @@
 	aria-label="{labelFull(o.y, o.m, o.d)}: {mo.title}.{mo.virtual ? (app.role === 'owner' ? ' Instellingen van de tijdlijn' : '') : app.canEdit ? ' Bewerken' : ' Bekijken'}"
 	onclick={open}
 >
-	<div class="when">{whenLabel(o)}</div>
+	<div class="when">{whenTimeLabel(o)}</div>
 	<div class="em">{mo.emoji}</div>
 	<div class="body">
 		<div class="ttl">{mo.title}</div>

@@ -32,6 +32,8 @@ create table public.moments (
   repeat       boolean not null default false,
   status       text check (status in ('gepland','bezig','behaald','bijstellen','vervallen')),
   photos       text[] not null default '{}',   -- storage paths in the 'photos' bucket
+  start_time   text check (start_time ~ '^\d{2}:\d{2}$'),      -- time of day, only with a day date
+  end_time     text check (end_time ~ '^\d{2}:\d{2}$'),  -- when it ends: same day, or the last day of a period
   created_by   uuid references auth.users default auth.uid(),
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -114,3 +116,7 @@ insert into storage.buckets (id, name, public) values ('photos', 'photos', false
 create policy "view photos"   on storage.objects for select using (bucket_id = 'photos' and can_view(((storage.foldername(name))[1])::uuid));
 create policy "upload photos" on storage.objects for insert with check (bucket_id = 'photos' and can_edit(((storage.foldername(name))[1])::uuid));
 create policy "delete photos" on storage.objects for delete using (bucket_id = 'photos' and can_edit(((storage.foldername(name))[1])::uuid));
+
+-- Times of day on moments, for a project made before they existed:
+-- alter table public.moments add column if not exists start_time text check (start_time ~ '^\d{2}:\d{2}$');
+-- alter table public.moments add column if not exists end_time text check (end_time ~ '^\d{2}:\d{2}$');

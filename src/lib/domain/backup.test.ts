@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { isUuid, makeBackup, parseBackup } from './backup';
 import { demoTimeline } from './demo';
+import { weekDemo } from './week';
+import type { Moment } from './types';
 
 const now = { y: 2026, m: 8, d: 26 };
 let n = 0;
@@ -12,6 +14,14 @@ describe('backup', () => {
 		const back = parseBackup(JSON.parse(JSON.stringify(makeBackup([d.timeline], d.moments, 'x'))), now, uuid)!;
 		expect(back.timelines).toEqual([{ ...d.timeline }]);
 		expect(back.moments).toEqual(d.moments);
+	});
+	it('keeps the times of day, and drops them on anything but a day', () => {
+		const w = weekDemo(now, uuid);
+		const back = parseBackup(JSON.parse(JSON.stringify(makeBackup([w.timeline], w.moments, 'x'))), now, uuid)!;
+		const strip = (m: Moment) => Object.fromEntries(Object.entries(m).filter(([, v]) => v != null));
+		expect(back.moments.map(strip)).toEqual(w.moments.map(strip));
+		const odd = parseBackup({ app: 'tijdlijn', version: 4, timelines: [w.timeline], moments: [{ ...w.moments[0], date: '2026-10', time: '09:00' }, { ...w.moments[0], time: '25:00' }] }, now, uuid)!;
+		expect(odd.moments.map((m) => m.time ?? null)).toEqual([null, null]);
 	});
 	it('reads the prototype’s v3 format and gives new ids', () => {
 		const v3 = {
