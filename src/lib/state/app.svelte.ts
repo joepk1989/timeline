@@ -5,6 +5,7 @@ import { today } from '$lib/domain/dates';
 import { demoTimeline } from '$lib/domain/demo';
 import { addMissingFestivalPhotos, demoPhotoSvg, festivalTimeline, isDemoPhoto } from '$lib/domain/festivals';
 import { isScales, scalesTimeline } from '$lib/domain/scales';
+import { weekDemo } from '$lib/domain/week';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -235,9 +236,9 @@ class AppState {
 		await this.backend.saveMoments(fixed).catch(() => {});
 	}
 
-	/** Loads a demo: a whole life, or the festivals in the Netherlands for the coming ten years. */
-	async loadDemo(which: 'leven' | 'festivals' | 'tijdschalen' = 'leven') {
-		const { timeline, moments } = ({ leven: demoTimeline, festivals: festivalTimeline, tijdschalen: scalesTimeline })[which](this.now, newId);
+	/** Loads a demo: a whole life, the festivals in the Netherlands for the coming ten years, the time scales, or one full week. */
+	async loadDemo(which: 'leven' | 'festivals' | 'tijdschalen' | 'week' = 'leven') {
+		const { timeline, moments } = ({ leven: demoTimeline, festivals: festivalTimeline, tijdschalen: scalesTimeline, week: weekDemo })[which](this.now, newId);
 		const existing = this.timelines.find((t) => t.demo && t.name === timeline.name);
 		if (existing) {
 			this.switchTo(existing.id);

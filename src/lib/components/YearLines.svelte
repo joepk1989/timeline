@@ -98,8 +98,9 @@
 	const lines = $derived(yearLines(occs, y));
 	// On a phone the year scrolls sideways: a month is at least 110px wide.
 	const full = $derived(pinned != null ? vw : Math.max(vw, 12 * 110));
-	const strip = $derived(vw > 640 ? 16 : 8);
-	// A month over the full width, also with a day zoomed into, keeps the other months as thin strips.
+	// A month over the full width, also with a day zoomed into, keeps the other months as thin strips;
+	// on a phone they fold away entirely, to give the month all the room (swipe sideways for the next).
+	const strip = $derived(vw > 640 ? 16 : 0);
 	const share = $derived(pinned != null ? 1 - (11 * strip) / full : Math.max(0.35 * full, Math.min(31 * 16, vw * 0.9)) / full);
 	const spans = $derived(monthSpans(y, full, open, share));
 	// In a month over the full width the days can be wide or narrow (one pointed at, or zoomed into), so
@@ -230,7 +231,7 @@
 	}
 	/** Where a day of the month over the full width sits: all alike, or the one zoomed into wide and the rest thin. */
 	// Together the thin days take at most 15% of the width, so the day itself stays wide, also on a phone.
-	const dstrip = $derived(Math.min(8, (vw * 0.15) / 30));
+	const dstrip = $derived(vw > 640 ? Math.min(8, (vw * 0.15) / 30) : 0);
 	// A day pointed at opens up a little, as a month does in the year; a day zoomed into takes the width.
 	let dayHover = $state<number | null>(null);
 	let dayTimer: ReturnType<typeof setTimeout> | undefined;
@@ -452,7 +453,7 @@
 						class="dayc"
 						class:we={[0, 6].includes(new Date(y, sp.m, i + 1).getDay())}
 						class:thin={box.width < 12}
-						class:busy={busy(i)}
+						class:busy={busy(i) && box.width > 0}
 						class:pointed={dayHover === i + 1 && day == null}
 						style:left="{box.left}px"
 						style:width="{box.width}px"

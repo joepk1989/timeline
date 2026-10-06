@@ -14,9 +14,9 @@
 
 	let { y, m, d, occs, onopen }: { y: number; m: number; d: number; occs: Occurrence[]; onopen: (o: Occurrence) => void } = $props();
 
-	const SKY = 96; // the arc of the sun
 	const AXIS = 26; // the hours
 	let w = $state(0);
+	const SKY = $derived(w && w <= 640 ? 64 : 96); // the arc of the sun, lower on a phone
 	const x = (h: number) => (h / 24) * w;
 	const arcY = (h: number) => SKY - 14 - sunHeight(h) * (SKY - 40);
 	const curve = $derived(w ? Array.from({ length: 49 }, (_, i) => `${x(i / 2).toFixed(1)},${arcY(i / 2).toFixed(1)}`).join(' L') : '');
@@ -148,6 +148,11 @@
 		.em { width: 34px; height: 34px; font-size: 18px; }
 		.ph { width: 52px; height: 40px; }
 		.cont { font-size: 0; }
+		/* On a phone the cards go almost edge to edge. */
+		.list { gap: 8px; padding: 10px 8px 90px; }
+		.bar { gap: 10px; min-height: 60px; padding: 8px 12px; border-radius: 12px; }
+		.bar.before { margin-left: -8px; padding-left: 12px; }
+		.bar.after { margin-right: -8px; padding-right: 12px; }
 	}
 	@media (prefers-reduced-motion: reduce) { .day, .bar { animation: none; } }
 </style>

@@ -20,6 +20,9 @@
 	const photos = $derived<GalleryItem[]>(real.flatMap((o) => o.moment.photos.map((path) => ({ path, o }))));
 	// Placeholders for a year without photos: the icons of its moments, or a few cheerful ones.
 	const cards = $derived(driftCards(7, y));
+	// On a phone the photos make way: the year sits small on top and the Jaarlijn gets the rest of the screen.
+	let vw = $state(1024);
+	const phone = $derived(vw <= 640);
 	let photoInput: HTMLInputElement | undefined = $state();
 	function addPhotos() {
 		const files = [...(photoInput?.files ?? [])];
@@ -52,11 +55,14 @@
 	</div>
 {/snippet}
 
+<svelte:window bind:innerWidth={vw} />
+
 {#if app.yearView === 'lijn'}
 	<!-- The upper half: the year, centred, with its photos to the right. The lower half: the Jaarlijn, edge to edge. -->
 	<div class="yp">
 		<div class="upper">
 			<div class="yr">{@render head()}</div>
+			{#if !phone}
 			<div class="photos" role="group" aria-label="Foto's uit {y}">
 				{#each photos as p, i (p.path + i)}
 					<button class="ph" aria-label="{p.o.moment.title}, foto bekijken" onclick={() => (ui.gallery = { list: photos, i, canEdit: app.canEdit })}>
@@ -86,8 +92,9 @@
 					</p>
 				{/each}
 			</div>
+			{/if}
 		</div>
-		<div class="lines" style:view-transition-name={morphs ? 'pres-months' : null}><YearLines {y} {occs} half /></div>
+		<div class="lines" style:view-transition-name={morphs ? 'pres-months' : null}><YearLines {y} {occs} half={!phone} /></div>
 	</div>
 {:else}
 	<div class="page-in">
@@ -104,7 +111,8 @@
 	.page-in { max-width: 860px; margin: 0 auto; padding: 18px 24px 120px; }
 	/* The Jaarlijn: the screen split in two, the year and its photos on top, the line below. */
 	.yp { min-height: 100%; display: flex; flex-direction: column; }
-	.upper { flex: 1 1 0; min-height: 0; display: flex; align-items: stretch; gap: 3vw; padding: 2vh 0 2vh 3vw; }
+	/* It never shrinks below the year itself: with a long Jaarlijn below, the page scrolls instead. */
+	.upper { flex: 1 0 220px; min-height: 0; display: flex; align-items: stretch; gap: 3vw; padding: 2vh 0 2vh 3vw; }
 	.yr { flex: 0 0 auto; align-self: center; }
 	.yr .count { margin-bottom: 0; }
 	/* The photos fill the rest of the upper half, in one row that scrolls sideways. */
@@ -140,10 +148,13 @@
 	.tip { font-size: 12px; color: var(--muted); margin: 0 0 20px; }
 	@media (max-width: 640px) {
 		.page-in { padding: 14px 14px 110px; }
-		/* On a phone the photos go under the year. */
-		.upper { flex-direction: column; gap: 10px; padding: 14px 0 12px 14px; }
-		.yr { align-self: flex-start; }
-		.photos { flex: 1 1 0; min-height: 0; padding-right: 14px; }
+		/* On a phone no photos on top: the year small, the Jaarlijn takes the rest of the screen. */
+		.upper { flex: 0 0 auto; padding: 10px 14px 8px; }
+		.yr { align-self: flex-start; display: flex; align-items: baseline; gap: 12px; }
+		.yr .big { font-size: 52px; }
+		.yr .count { margin: 0; font-size: 14px; }
+		.yr .stsum { margin: 4px 0 0; }
+		.lines { flex: 1 0 auto; }
 	}
 	@media (min-width: 1200px) {
 		.page-in { max-width: none; padding: 3vh 3vw 120px; }
