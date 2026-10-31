@@ -2,11 +2,9 @@
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { startPresenting } from '$lib/state/present';
-	import { MONTHS, MONTHS_SHORT, season } from '$lib/domain/dates';
-	import { ageLabel } from '$lib/domain/age';
 	import { STATUSES } from '$lib/domain/kinds';
 	import { yearOccurrences } from '$lib/domain/occurrences';
-	import { momentsLabel, monthOccurrences } from '$lib/domain/view';
+	import { momentsLabel } from '$lib/domain/view';
 	import type { Status } from '$lib/domain/types';
 	import Btn from './Btn.svelte';
 	import Chip from './Chip.svelte';
@@ -17,7 +15,7 @@
 	let fullscreen = $state(false);
 	// On the Jaarlijn the bar keeps only its top row; the filters and the years fold away, and show
 	// as a panel over the page when pointed at or opened with the arrow.
-	const fold = $derived(app.mode === 'year' && app.yearView === 'lijn');
+	const fold = true;
 	let open = $state(false);
 	$effect(() => { if (!fold) open = false; });
 	const canFullscreen = typeof document !== 'undefined' && document.fullscreenEnabled;
@@ -26,29 +24,17 @@
 		else document.documentElement.requestFullscreen().catch(() => app.toast('Volledig scherm is hier niet beschikbaar'));
 	}
 
-	const sub = $derived.by(() => {
-		if (app.scales) return 'Van 4,6 miljard jaar geleden tot vandaag';
-		if (app.mode === 'year') return `${app.scope.from} – ${app.scope.to}${app.count ? ' · ' + momentsLabel(app.count) : ''}`;
-		const a = ageLabel(app.tl, app.year, app.month, null);
-		return `${MONTHS[app.month]} ${app.year}${a && a !== app.kind.before ? ' · ' + a : ''}`;
-	});
+	const sub = $derived(app.scales ? 'Van 4,6 miljard jaar geleden tot vandaag' : `${app.scope.from} – ${app.scope.to}${app.count ? ' · ' + momentsLabel(app.count) : ''}`);
 
-	/** Ticks under the bar: one per year, or one per month when zoomed in. */
+	/** Ticks under the bar: one per year. */
 	const ticks = $derived.by(() => {
 		const real = app.visible.filter((m) => !m.virtual);
-		if (app.mode === 'year') {
 			const out = [];
 			for (let y = app.scope.from; y <= app.scope.to; y++) {
 				const c = yearOccurrences(real, y).length;
 				out.push({ i: y - app.scope.from, c, label: `${y}${c ? ': ' + momentsLabel(c) : ''}`, s: null as string | null });
 			}
-			return out;
-		}
-		const occs = yearOccurrences(real, app.year);
-		return MONTHS.map((name, m) => {
-			const c = monthOccurrences(occs, app.year, m).length;
-			return { i: (app.year - app.scope.from) * 12 + m, c, label: `${name}${c ? ': ' + momentsLabel(c) : ''}`, s: `var(--${season(m)})` };
-		});
+		return out;
 	});
 </script>
 
@@ -56,9 +42,6 @@
 
 <header>
 	<div class="in">
-		{#if app.mode === 'month'}
-			<Btn variant="pill" onclick={() => app.exitMonth()} aria-label="Terug naar {app.year}"><Icon name="back" /><span>{app.year}</span></Btn>
-		{/if}
 		<button class="tl" onclick={() => (ui.picker = true)} aria-haspopup="dialog" aria-label="Kies een tijdlijn, nu: {app.tl.name}">
 			<span class="em">{app.kind.emoji}</span>
 			<span class="txt"><b>{app.tl.name}</b><small>{sub}</small></span>
@@ -71,7 +54,7 @@
 			<span class="fs"><Btn variant="pill" onclick={toggleFullscreen} aria-label="Volledig scherm"><Icon name="full" /><span class="lbl">{fullscreen ? 'Sluiten' : 'Volledig scherm'}</span></Btn></span>
 		{/if}
 		{#if !app.scales}<Btn variant="pill" onclick={startPresenting} aria-label="Presenteren"><Icon name="play" /><span class="lbl">Presenteren</span></Btn>{/if}
-		<Btn variant="pill" onclick={() => (ui.menu = { y: app.year, m: app.mode === 'month' ? app.month : null })} aria-haspopup="dialog" aria-label="Menu"><Icon name="menu" /><span class="lbl">Menu</span></Btn>
+		<Btn variant="pill" onclick={() => (ui.menu = { y: app.year, m: null })} aria-haspopup="dialog" aria-label="Menu"><Icon name="menu" /><span class="lbl">Menu</span></Btn>
 		{#if fold && !app.scales}
 			<button class="more-btn" class:open aria-expanded={open} aria-controls="bar-more" aria-label={open ? 'Filters en jaren verbergen' : 'Filters en jaren tonen'} onclick={() => (open = !open)}><Icon name="down" /></button>
 		{/if}
@@ -105,8 +88,7 @@
 		{/each}
 	</div>
 	<div class="labels">
-		{#if app.mode === 'year'}<span>{app.scope.from}</span><span>{app.scope.to}</span>
-		{:else}<span>{MONTHS_SHORT[0]} {app.year}</span><span>{MONTHS_SHORT[11]} {app.year}</span>{/if}
+		<span>{app.scope.from}</span><span>{app.scope.to}</span>
 	</div>
 	</div>
 	{/if}

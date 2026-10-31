@@ -4,15 +4,13 @@
 	import { tick, untrack } from 'svelte';
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
-	import { MONTHS } from '$lib/domain/dates';
 	import Icon from './Icon.svelte';
-	import MonthPage from './MonthPage.svelte';
 	import YearPage from './YearPage.svelte';
 
 	let el: HTMLElement;
 	const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 	const pages = $derived(Array.from({ length: app.pageCount }, (_, i) => i));
-	const yearOf = (i: number) => (app.mode === 'year' ? app.scope.from + i : app.scope.from + Math.floor(i / 12));
+	const yearOf = (i: number) => app.scope.from + i;
 
 	// Scroll when asked (and after the pages for a new mode or period exist).
 	$effect(() => {
@@ -34,24 +32,23 @@
 		if (ui.present || document.querySelector('dialog[open]') || (e.target as HTMLElement).closest?.('input,textarea,select')) return;
 		if (e.key === 'ArrowLeft') { e.preventDefault(); app.goTo(app.idx - 1); }
 		else if (e.key === 'ArrowRight') { e.preventDefault(); app.goTo(app.idx + 1); }
-		else if (e.key === 'Escape' && app.mode === 'month') app.exitMonth();
 	}
 </script>
 
 <svelte:window onresize={() => app.goTo(app.idx, false)} {onkeydown} />
 
 <main bind:this={el} {onscroll} aria-label="Tijdlijn, swipe om te bladeren">
-	{#each pages as i (app.mode + i)}
-		<section aria-label={app.mode === 'year' ? `Jaar ${yearOf(i)}` : `${MONTHS[i % 12]} ${yearOf(i)}`} inert={i !== app.idx} aria-hidden={i !== app.idx}>
+	{#each pages as i (i)}
+		<section aria-label="Jaar {yearOf(i)}" inert={i !== app.idx} aria-hidden={i !== app.idx}>
 			{#if Math.abs(i - app.idx) <= 1}
-				{#if app.mode === 'year'}<YearPage y={yearOf(i)} />{:else}<MonthPage y={yearOf(i)} m={i % 12} />{/if}
+				<YearPage y={yearOf(i)} />
 			{/if}
 		</section>
 	{/each}
 </main>
 <!-- Above the Jaarlijn, in the upper half, so the arrows do not cover the months. -->
-<button class="nav prev" class:high={app.mode === 'year' && app.yearView === 'lijn'} disabled={app.idx <= 0} aria-label={app.mode === 'year' ? 'Vorig jaar' : 'Vorige maand'} onclick={() => app.goTo(app.idx - 1)}><Icon name="back" /></button>
-<button class="nav next" class:high={app.mode === 'year' && app.yearView === 'lijn'} disabled={app.idx >= app.pageCount - 1} aria-label={app.mode === 'year' ? 'Volgend jaar' : 'Volgende maand'} onclick={() => app.goTo(app.idx + 1)}><Icon name="next" /></button>
+<button class="nav prev high" disabled={app.idx <= 0} aria-label="Vorig jaar" onclick={() => app.goTo(app.idx - 1)}><Icon name="back" /></button>
+<button class="nav next high" disabled={app.idx >= app.pageCount - 1} aria-label="Volgend jaar" onclick={() => app.goTo(app.idx + 1)}><Icon name="next" /></button>
 
 <style>
 	main { flex: 1 1 auto; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }

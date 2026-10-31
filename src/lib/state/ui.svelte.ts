@@ -15,8 +15,6 @@ class UiState {
 	gallery = $state<{ list: GalleryItem[]; i: number; canEdit: boolean } | null>(null);
 	/** Presenting: the timeline screen itself, full screen, playing through the moments. */
 	present = $state(false);
-	/** Month tab last shown for a year, so the year page and the presentation open on the same month. */
-	monthTab = $state<{ y: number; m: number } | null>(null);
 	account = $state(false);
 	/** The Jaarlijn zoomed out: all the years of the timeline, without months. */
 	allYears = $state(false);

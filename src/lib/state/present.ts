@@ -54,7 +54,6 @@ export async function stopPresenting(year: number) {
 	await settle();
 	await morph(() => {
 		ui.present = false;
-		app.mode = 'year';
 		app.goTo(Math.max(0, Math.min(app.pageCount - 1, year - app.scope.from)), false);
 	});
 	stopping = false;

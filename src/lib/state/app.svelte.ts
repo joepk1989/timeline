@@ -48,15 +48,11 @@ class AppState {
 	/** Period on screen. Follows the timeline, but a viewer can change it without saving. */
 	scope = $state<Scope>({ from: 0, to: 0 });
 	filter = $state<Filter>({ categoryId: null, status: null });
-	mode = $state<'year' | 'month'>('year');
-	/** Current page: a year index in year mode, a month index (years × 12) in month mode. */
+	/** Current page: the index of the year on show, counted from the start of the scope. */
 	idx = $state(0);
 	/** Bumped to ask the pager to scroll to `idx`. */
 	scrollReq = $state({ n: 0, smooth: false });
-	viewMode = $state<'list' | 'photos'>(store.get('view') === 'photos' ? 'photos' : 'list');
 	/** How a year shows its months: as the Jaarlijn (365 lines) or as month tabs. */
-	yearView = $state<'lijn' | 'maanden'>(store.get('yearView') === 'maanden' ? 'maanden' : 'lijn');
-	monthView = $state<'cal' | 'row'>(store.get('monthview') === 'row' ? 'row' : 'cal');
 	toastMsg = $state<{ text: string; action?: ToastAction; id: number } | null>(null);
 
 	tl = $derived<Timeline>(this.timelines.find((t) => t.id === this.curId) ?? this.timelines[0] ?? this.temp ?? blank(this.now.y));
@@ -69,9 +65,8 @@ class AppState {
 	visible = $derived(visibleMoments(this.tl, this.moments, this.filter));
 	count = $derived(countInScope(this.own.filter((m) => (!this.filter.categoryId || m.categoryId === this.filter.categoryId) && (!this.filter.status || m.status === this.filter.status)), this.scope));
 	years = $derived(this.scope.to - this.scope.from + 1);
-	pageCount = $derived(this.mode === 'year' ? this.years : this.years * 12);
-	year = $derived(this.mode === 'year' ? this.scope.from + this.idx : this.scope.from + Math.floor(this.idx / 12));
-	month = $derived(this.mode === 'year' ? this.now.m : this.idx % 12);
+	pageCount = $derived(this.years);
+	year = $derived(this.scope.from + this.idx);
 
 	/* ---------- start ---------- */
 
@@ -116,7 +111,6 @@ class AppState {
 		const t = this.tl;
 		if (fresh || t.scope.from !== this.scope.from || t.scope.to !== this.scope.to) {
 			this.scope = { ...t.scope };
-			if (fresh) this.mode = 'year';
 			this.jumpToStart();
 		}
 		if (this.filter.categoryId && !t.categories.some((c) => c.id === this.filter.categoryId)) this.filter.categoryId = null;
@@ -132,18 +126,9 @@ class AppState {
 	setIdx(i: number) {
 		if (i >= 0 && i < this.pageCount) this.idx = i;
 	}
-	enterMonth(y: number, m: number) {
-		this.mode = 'month';
-		this.goTo((y - this.scope.from) * 12 + m, false);
-	}
-	exitMonth() {
-		const y = this.year;
-		this.mode = 'year';
-		this.goTo(y - this.scope.from, false);
-	}
 	jumpToStart() {
 		const y = pickStartYear(this.own, this.scope, this.now);
-		this.goTo(this.mode === 'year' ? y - this.scope.from : (y - this.scope.from) * 12 + (y === this.now.y ? this.now.m : 0), false);
+		this.goTo(y - this.scope.from, false);
 	}
 	async setScope(s: Scope) {
 		const c = clampScope(s);
@@ -155,9 +140,6 @@ class AppState {
 
 	/* ---------- view settings ---------- */
 
-	setView(v: 'list' | 'photos') { this.viewMode = v; store.set('view', v); }
-	setYearView(v: 'lijn' | 'maanden') { this.yearView = v; store.set('yearView', v); }
-	setMonthView(v: 'cal' | 'row') { this.monthView = v; store.set('monthview', v); }
 	setCategory(id: string | null) { this.filter.categoryId = id; }
 	setStatus(s: Status | null) { this.filter.status = this.filter.status === s ? null : s; }
 	catOf(id: string) {
@@ -171,7 +153,6 @@ class AppState {
 		this.curId = id;
 		store.set('current', id);
 		this.filter = { categoryId: null, status: null };
-		this.mode = 'year';
 		this.scope = { ...this.tl.scope };
 		this.jumpToStart();
 	}
@@ -340,7 +321,7 @@ class AppState {
 		const years = list.map((m) => parseDate(m.date).y), first = parseDate(list[0].date);
 		if (years.some((y) => y < this.scope.from || y > this.scope.to))
 			await this.setScope({ from: Math.min(this.scope.from, ...years), to: Math.max(this.scope.to, ...years) });
-		this.goTo(this.mode === 'year' ? first.y - this.scope.from : (first.y - this.scope.from) * 12 + first.m!, false);
+		this.goTo(first.y - this.scope.from, false);
 		const undated = done.filter((p) => !p.taken).length;
 		const photos = (n: number) => (n === 1 ? '1 foto' : `${n} foto's`);
 		this.toast(

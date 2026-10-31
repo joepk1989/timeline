@@ -5,14 +5,13 @@
 	import { STATUSES } from '$lib/domain/kinds';
 	import { isOverdue, yearOccurrences } from '$lib/domain/occurrences';
 	import { driftCards, momentsLabel } from '$lib/domain/view';
-	import MonthTabs from './MonthTabs.svelte';
 	import Photo from './Photo.svelte';
 	import type { GalleryItem } from '$lib/state/ui.svelte';
 	import YearLines from './YearLines.svelte';
 
 	let { y }: { y: number } = $props();
 	// Only the page on screen takes part in the morph into presenting (names must be unique).
-	const morphs = $derived(y === app.year && app.mode === 'year' && !ui.present);
+	const morphs = $derived(y === app.year && !ui.present);
 	const canHover = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 	const occs = $derived(yearOccurrences(app.visible, y));
 	const real = $derived(occs.filter((o) => !o.moment.virtual));
@@ -58,8 +57,7 @@
 
 <svelte:window bind:innerWidth={vw} />
 
-{#if app.yearView === 'lijn'}
-	<!-- The upper half: the year, centred, with its photos to the right. The lower half: the Jaarlijn, edge to edge. -->
+<!-- The upper half: the year, centred, with its photos to the right. The lower half: the Jaarlijn, edge to edge. -->
 	<div class="yp">
 		<div class="upper">
 			<div class="yr">{@render head()}</div>
@@ -103,19 +101,8 @@
 			<YearLines {y} {occs} half={!phone} />
 		</div>
 	</div>
-{:else}
-	<div class="page-in">
-		{@render head()}
-		<div class="acc">
-			<div style:view-transition-name={morphs ? 'pres-months' : null}><MonthTabs {y} {occs} /></div>
-			<p class="tip">{canHover ? 'Beweeg over de maanden om ze te bekijken, klik om er een te kiezen' : 'Tik op een maand om de dagen te zien'}</p>
-		</div>
-	</div>
-{/if}
 
 <style>
-	/* The month tabs: a centred column, with room at the bottom for the add button. */
-	.page-in { max-width: 860px; margin: 0 auto; padding: 18px 24px 120px; }
 	/* The Jaarlijn: the screen split in two, the year and its photos on top, the line below. */
 	.yp { min-height: 100%; display: flex; flex-direction: column; }
 	/* It never shrinks below the year itself: with a long Jaarlijn below, the page scrolls instead. */
@@ -155,10 +142,8 @@
 	.stsum { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: -8px 0 18px; font-size: 14px; }
 	.sst { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: var(--c); }
 	.sst::before { content: ''; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
-	.tip { font-size: 12px; color: var(--muted); margin: 0 0 20px; }
 	@media (max-width: 640px) {
-		.page-in { padding: 14px 14px 110px; }
-		/* On a phone no photos on top: the year small, the Jaarlijn takes the rest of the screen. */
+			/* On a phone no photos on top: the year small, the Jaarlijn takes the rest of the screen. */
 		.upper { flex: 0 0 auto; padding: 6px 14px 4px; }
 		.yr { align-self: flex-start; display: flex; align-items: baseline; gap: 12px; }
 		/* The year itself stands in the row of years above: not twice. */
@@ -168,17 +153,13 @@
 		.lines { flex: 1 0 auto; }
 	}
 	@media (min-width: 1200px) {
-		.page-in { max-width: none; padding: 3vh 3vw 120px; }
-		/* Year and its line side by side, then the months across the full width. */
-		.page-in { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'year info' 'acc acc'; gap: 0 3vw; align-items: end; }
-		.big { grid-area: year; font-size: clamp(100px, min(11vw, 15vh), 260px); }
-		.info { grid-area: info; padding-bottom: 1vh; }
+		.big { font-size: clamp(100px, min(11vw, 15vh), 260px); }
+		.info { padding-bottom: 1vh; }
 		.count { margin: 0 0 8px; font-size: 18px; }
 		.yr .count { margin: 12px 0 0; }
 		.stsum { margin: 0 0 8px; }
-		.acc { grid-area: acc; margin-top: 3vh; }
 	}
 	/* Large screens zoom in; the Jaarlijn already spans the screen, so it keeps its own size. */
-	@media (min-width: 2300px) and (min-height: 1250px) { .page-in > *, .yr { zoom: 1.25; } }
-	@media (min-width: 3200px) and (min-height: 1400px) { .page-in > *, .yr { zoom: 1.5; } }
+	@media (min-width: 2300px) and (min-height: 1250px) { .yr { zoom: 1.25; } }
+	@media (min-width: 3200px) and (min-height: 1400px) { .yr { zoom: 1.5; } }
 </style>

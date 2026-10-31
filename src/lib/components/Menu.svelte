@@ -11,7 +11,6 @@
 	import { blobToDataUrl, download } from '$lib/data/photos';
 	import Btn from './Btn.svelte';
 	import Dialog from './Dialog.svelte';
-	import Seg from './Seg.svelte';
 
 	const start = ui.menu!;
 	let sel = $state({ y: start.y, m: start.m ?? (start.y === app.now.y ? app.now.m : 0), d: null as number | null });
@@ -139,7 +138,6 @@
 
 		<section class="box" aria-labelledby="h-view">
 			<div class="sh"><h3 id="h-view">Weergave</h3></div>
-			<div class="view"><Seg label="Het jaar als" value={app.yearView} onchange={(v) => app.setYearView(v)} options={[['lijn', 'Jaarlijn'], ['maanden', 'Maanden']]} /></div>
 			<div class="bk">
 				<Btn variant="ghost" onclick={() => ui.toggleTheme?.()}>{ui.theme === 'dark' ? 'Licht thema' : 'Donker thema'}</Btn>
 				{#if canFullscreen}<Btn variant="ghost" onclick={toggleFullscreen}>{fullscreen ? 'Volledig scherm sluiten' : 'Volledig scherm'}</Btn>{/if}
@@ -275,7 +273,6 @@
 	.box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin: 0 12px 12px; overflow: hidden; }
 	.sh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px 16px 8px; }
 	.sh h3 { margin: 0; font-size: 18px; font-weight: 800; display: flex; align-items: baseline; gap: 8px; }
-	.view { display: flex; padding: 0 16px 14px; }
 	.sh h3 span { font-size: 13px; font-weight: 600; color: var(--muted); }
 	.hint { color: var(--muted); font-size: 13px; margin-left: auto; }
 	.hint::first-letter { text-transform: uppercase; }

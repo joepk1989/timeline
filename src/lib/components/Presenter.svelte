@@ -14,7 +14,6 @@
 	import { momentsLabel, relParts } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import Icon from './Icon.svelte';
-	import MonthTabs from './MonthTabs.svelte';
 	import Photo from './Photo.svelte';
 	import YearLines from './YearLines.svelte';
 
@@ -95,17 +94,8 @@
 		playing = !playing;
 		restart();
 	}
-	function jumpMonth(m: number) {
-		const n = slides.findIndex((x) => x.y === y && x.o.m === m);
-		if (n >= 0) goTo(n);
-		else app.toast(`Geen momenten in ${MONTHS[m]}`);
-	}
 	function jumpMoment(o: Occurrence) {
 		const n = slides.findIndex((x) => x.y === y && x.o.moment.id === o.moment.id);
-		if (n >= 0) goTo(n);
-	}
-	function jumpDay(m: number, d: number) {
-		const n = slides.findIndex((x) => x.y === y && covers(x.o, y, m, d));
 		if (n >= 0) goTo(n);
 	}
 
@@ -118,8 +108,6 @@
 	}
 
 	function stop() {
-		// The year page opens on the month that was on show, so the months do not change while morphing back.
-		if (focus) ui.monthTab = { y, m: focus.m };
 		stopPresenting(y);
 	}
 	function onkeydown(e: KeyboardEvent) {
@@ -227,12 +215,8 @@
 		{/if}
 	</main>
 
-	<div class="months" bind:clientHeight={mh} class:edge={app.yearView === 'lijn'} style:view-transition-name="pres-months">
-		{#if app.yearView === 'lijn'}
-			<YearLines {y} {occs} compact height={Math.round(Math.max(200, vh * 0.38))} focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
-		{:else}
-			<MonthTabs {y} {occs} {focus} onmonth={jumpMonth} onday={jumpDay} />
-		{/if}
+	<div class="months edge" bind:clientHeight={mh} style:view-transition-name="pres-months">
+		<YearLines {y} {occs} compact height={Math.round(Math.max(200, vh * 0.38))} focus={settled && s?.y === y ? s.o.moment.id : null} openMonth={focus?.m ?? null} onpick={jumpMoment} />
 	</div>
 </div>
 

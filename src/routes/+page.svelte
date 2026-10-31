@@ -47,7 +47,7 @@
 	});
 
 	function add() {
-		ui.menu = { y: app.year, m: app.mode === 'month' ? app.month : null };
+		ui.menu = { y: app.year, m: null };
 	}
 </script>
 
@@ -57,11 +57,11 @@
 		{#if app.scales}
 			<ScalesView />
 		{:else}
-			{#if app.mode === 'year' && app.yearView === 'lijn'}<YearsRow />{/if}
+			<YearsRow />
 			<Pager />
 			{#if !app.canEdit}
 				<div class="ro">Alleen bekijken</div>
-			{:else if !(app.mode === 'year' && app.yearView === 'lijn' && ui.lineZoom !== 'year')}
+			{:else if ui.lineZoom === 'year'}
 				<!-- Zoomed into a month or a day, the Jaarlijn has its own plus; the big one would only cover moments. -->
 				<button class="fab" onclick={add}><Icon name="plus" />Toevoegen</button>
 			{/if}
