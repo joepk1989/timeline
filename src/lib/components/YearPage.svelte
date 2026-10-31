@@ -2,7 +2,6 @@
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 		import { yearLine } from '$lib/domain/age';
-	import { STATUSES } from '$lib/domain/kinds';
 	import { isOverdue, yearOccurrences } from '$lib/domain/occurrences';
 	import { driftCards, momentsLabel } from '$lib/domain/view';
 	import Photo from './Photo.svelte';
@@ -36,7 +35,7 @@
 	const stats = $derived(
 		app.kind.hasStatus && real.length
 			? [
-					...STATUSES.map((st) => ({ n: real.filter((o) => o.moment.status === st.id).length, name: st.name.toLowerCase(), color: st.color })),
+					...app.statuses.map((st) => ({ n: real.filter((o) => o.moment.status === st.id).length, name: st.name.toLowerCase(), color: st.color })),
 					{ n: real.filter((o) => isOverdue(o, app.now)).length, name: 'over tijd', color: 'var(--danger)' }
 				].filter((s) => s.n)
 			: []
@@ -106,7 +105,7 @@
 	/* The Jaarlijn: the screen split in two, the year and its photos on top, the line below. */
 	.yp { min-height: 100%; display: flex; flex-direction: column; }
 	/* It never shrinks below the year itself: with a long Jaarlijn below, the page scrolls instead. */
-	.upper { flex: 1 0 220px; min-height: 0; display: flex; align-items: stretch; gap: 3vw; padding: 2vh 0 2vh 3vw; }
+	.upper { flex: 1 0 220px; min-height: 0; display: flex; align-items: stretch; gap: 3vw; padding: 2vh 0 2vh max(3vw, 72px); }
 	.yr { flex: 0 0 auto; align-self: center; }
 	.yr .count { margin-bottom: 0; }
 	/* The photos fill the rest of the upper half, in one row that scrolls sideways. */
@@ -145,7 +144,8 @@
 	@media (max-width: 640px) {
 			/* On a phone no photos on top: the year small, the Jaarlijn takes the rest of the screen. */
 		.upper { flex: 0 0 auto; padding: 6px 14px 4px; }
-		.yr { align-self: flex-start; display: flex; align-items: baseline; gap: 12px; }
+		.yr { align-self: flex-start; display: flex; align-items: baseline; gap: 12px; max-width: 100%; }
+		.info { min-width: 0; }
 		/* The year itself stands in the row of years above: not twice. */
 		.yr .big { display: none; }
 		.yr .count { margin: 0; font-size: 14px; }

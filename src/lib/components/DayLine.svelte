@@ -12,6 +12,7 @@
 	import type { Occurrence } from '$lib/domain/types';
 	import Icon from './Icon.svelte';
 	import Photo from './Photo.svelte';
+	import DoneCheck from './DoneCheck.svelte';
 
 	let { y, m, d, occs, onopen }: { y: number; m: number; d: number; occs: Occurrence[]; onopen: (o: Occurrence) => void } = $props();
 
@@ -56,11 +57,13 @@
 		}
 		return v;
 	}
+	/** A job on a timeline with statuses can be ticked off from here. */
+	const ticks = (o: Occurrence) => app.canEdit && app.kind.hasStatus && !o.moment.virtual && !o.moment.repeat;
 	const ROW = 50;
 	const blocks = $derived.by(() => {
 		const boxes = plan.timed.map((t) => {
 			const a = x(t.from / 60), b = x(t.to / 60);
-			const text = Math.max(textWidth(`${t.o.moment.emoji} ${t.o.moment.title}`, '700 14px'), textWidth(t.label, '12px') + 14) + 26;
+			const text = Math.max(textWidth(`${t.o.moment.emoji} ${t.o.moment.title}`, '700 14px'), textWidth(t.label, '12px') + 14) + 26 + (ticks(t.o) ? 26 : 0);
 			const width = Math.min(Math.max(b - a, text), Math.max(w - 8, 40));
 			const left = Math.max(0, Math.min(a, w - width));
 			return { left, right: left + width, t, start: a, end: b };
@@ -173,6 +176,8 @@
 					{@const mo = bx.t.o.moment}
 					<button
 						class="blk"
+						class:ticked={ticks(bx.t.o)}
+						class:done={mo.status === 'behaald'}
 						class:before={bx.t.before}
 						class:after={bx.t.after}
 						style:left="{bx.left}px"
@@ -186,6 +191,7 @@
 						<span class="l1">{mo.emoji} <b>{mo.title}</b></span>
 						<span class="l2">{bx.t.label}</span>
 					</button>
+					{#if ticks(bx.t.o)}<span class="tickw" style:left="{bx.left + 8}px" style:top="{8 + bx.row * ROW + 9}px"><DoneCheck m={mo} /></span>{/if}
 				{:else}
 					{#if !plan.allDay.length}<p class="empty">Niets op {weekday} {d} {MONTHS[m]}.{app.canEdit ? (canHover ? ' Dubbelklik op een tijd om iets toe te voegen.' : ' Houd een tijd ingedrukt om iets toe te voegen.') : ''}</p>{/if}
 				{/each}
@@ -197,7 +203,8 @@
 					{#each plan.allDay as o, i (o.moment.id + i)}
 						{@const mo = o.moment}
 						{@const e = edges(o)}
-						<button class="bar" class:before={e.before} class:after={e.after} onclick={() => onopen(o)} style:animation-delay="{120 + i * 60}ms">
+						<div class="cw" class:before={e.before}>
+						<button class="bar" class:ticked={ticks(o)} class:done={mo.status === 'behaald'} class:before={e.before} class:after={e.after} onclick={() => onopen(o)} style:animation-delay="{120 + i * 60}ms">
 							{#if e.before}<span class="cont l" aria-hidden="true"><Icon name="back" />{e.from}</span>{/if}
 							<span class="em" aria-hidden="true">{mo.emoji}</span>
 							<span class="txt">
@@ -207,6 +214,8 @@
 							{#if mo.photos[0]}<span class="ph"><Photo path={mo.photos[0]} alt="" /></span>{/if}
 							{#if e.after}<span class="cont r" aria-hidden="true">{e.to}<Icon name="next" /></span>{/if}
 						</button>
+						{#if ticks(o)}<span class="tickw card"><DoneCheck m={mo} size={26} /></span>{/if}
+						</div>
 					{/each}
 				</div>
 			{/if}
@@ -265,6 +274,16 @@
 	.blk .l2 { font-size: 12px; line-height: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
 	@media (hover: hover) { .blk:hover { filter: var(--hover-filter); z-index: 1; } }
 	.sh { margin: 6px 16px 0; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+	/* The check that ticks a job off, in front of it; a job that is done is quiet. */
+	.tickw { position: absolute; z-index: 2; }
+	.cw { position: relative; display: flex; flex-direction: column; }
+	.tickw.card { left: 14px; top: 50%; transform: translateY(-50%); }
+	.cw.before .tickw.card { left: 0; }
+	.blk.ticked { padding-left: 38px; }
+	.bar.ticked { padding-left: 52px; }
+	.bar.ticked.before { padding-left: 50px; }
+	.blk.done .l1 b, .bar.done .ttl { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--muted); }
+	.blk.done, .bar.done { opacity: 0.8; }
 	.cards { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
 	.bar { position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 10px 16px; border: none; border-radius: 14px; background: var(--surface); color: var(--ink);
 		box-shadow: 0 1px 0 var(--line), 0 6px 18px rgba(10, 20, 30, 0.06); font: inherit; text-align: left; cursor: pointer; animation: rise 0.35s ease both; transition: filter 0.15s; }
@@ -298,6 +317,10 @@
 		.sh { margin: 4px 8px 0; }
 		.bar { gap: 10px; min-height: 60px; padding: 8px 12px; border-radius: 12px; }
 		.bar.before { margin-left: -8px; padding-left: 12px; }
+		.tickw.card { left: 10px; }
+		.cw.before .tickw.card { left: -2px; }
+		.bar.ticked { padding-left: 46px; }
+		.bar.ticked.before { padding-left: 44px; }
 		.bar.after { margin-right: -8px; padding-right: 12px; }
 	}
 	@media (prefers-reduced-motion: reduce) { .day, .bar, .blk { animation: none; } .hc, .hr, .blk, .blk .span { transition: none; } }

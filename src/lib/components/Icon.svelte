@@ -1,5 +1,5 @@
 <script lang="ts">
-	type Name = 'back' | 'next' | 'down' | 'moon' | 'sun' | 'full' | 'play' | 'pause' | 'menu' | 'plus' | 'user';
+	type Name = 'back' | 'next' | 'down' | 'moon' | 'sun' | 'full' | 'play' | 'pause' | 'menu' | 'plus' | 'user' | 'check';
 	let { name }: { name: Name } = $props();
 </script>
 
@@ -16,6 +16,7 @@
 		{:else if name === 'sun'}<circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
 		{:else if name === 'full'}<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
 		{:else if name === 'menu'}<path d="M4 7h16M4 12h16M4 17h16" />
+		{:else if name === 'check'}<path d="M5 12.5l4.5 4.5L19 7.5" />
 		{:else if name === 'plus'}<path d="M12 5v14M5 12h14" />
 		{:else if name === 'user'}<circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
 		{/if}

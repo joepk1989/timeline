@@ -1,11 +1,12 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '$lib/supabase';
-import { KINDS } from '$lib/domain/kinds';
+import { doneToggle, KINDS, statusList } from '$lib/domain/kinds';
 import { today } from '$lib/domain/dates';
 import { demoTimeline } from '$lib/domain/demo';
 import { addMissingFestivalPhotos, demoPhotoSvg, festivalTimeline, isDemoPhoto } from '$lib/domain/festivals';
 import { isScales, scalesTimeline } from '$lib/domain/scales';
 import { weekDemo, weekDemoStale } from '$lib/domain/week';
+import { renovationDemo } from '$lib/domain/renovation';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -57,6 +58,8 @@ class AppState {
 
 	tl = $derived<Timeline>(this.timelines.find((t) => t.id === this.curId) ?? this.timelines[0] ?? this.temp ?? blank(this.now.y));
 	kind = $derived(KINDS[this.tl.kind]);
+	/** The statuses of this timeline, in the words of its kind. */
+	statuses = $derived(statusList(this.tl.kind));
 	/** The time scales demo has a screen of its own. */
 	scales = $derived(isScales(this.tl));
 	role = $derived<Role>(this.roles[this.tl.id] ?? 'owner');
@@ -232,8 +235,8 @@ class AppState {
 	}
 
 	/** Loads a demo: a whole life, the festivals in the Netherlands for the coming ten years, the time scales, or one full week. */
-	async loadDemo(which: 'leven' | 'festivals' | 'tijdschalen' | 'week' = 'leven') {
-		const { timeline, moments } = ({ leven: demoTimeline, festivals: festivalTimeline, tijdschalen: scalesTimeline, week: weekDemo })[which](this.now, newId);
+	async loadDemo(which: 'leven' | 'festivals' | 'tijdschalen' | 'week' | 'verbouwing' = 'leven') {
+		const { timeline, moments } = ({ leven: demoTimeline, festivals: festivalTimeline, tijdschalen: scalesTimeline, week: weekDemo, verbouwing: renovationDemo })[which](this.now, newId);
 		const existing = this.timelines.find((t) => t.demo && t.name === timeline.name);
 		if (existing) {
 			// The week demo is always this week: choosing it again makes it anew.
@@ -330,6 +333,14 @@ class AppState {
 				(failed ? `. ${photos(failed)} lukte niet` : ''),
 			undefined, 5000
 		);
+	}
+
+	/** Ticks a job off (or back): one tap, no form. */
+	async toggleDone(m: Moment) {
+		if (m.virtual || !this.canEdit) return;
+		const next = { ...m, status: doneToggle(m, this.now) };
+		await this.saveMoment(next);
+		this.toast(next.status === 'behaald' ? `“${m.title}” is klaar` : `“${m.title}” staat weer open`, undefined, 2200);
 	}
 
 	async deleteMoment(id: string) {

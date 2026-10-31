@@ -1,4 +1,5 @@
-import type { Category, TimelineKind } from './types';
+import { dayNumber } from './dates';
+import type { Category, Day, Moment, Status, TimelineKind } from './types';
 
 export interface KindDefinition {
 	label: string;
@@ -8,6 +9,12 @@ export interface KindDefinition {
 	/** `age` counts like a person's age, `duration` counts years since the start. */
 	mode: 'age' | 'duration';
 	hasStatus?: boolean;
+	/** Other words for the statuses, where the standard ones do not fit (a job is "Klaar", not "Behaald"). */
+	statusNames?: Partial<Record<Status, string>>;
+	/** The question above the name of a moment, the symbol a new one starts with, and what to ask for in the note. */
+	itemLabel?: string;
+	defaultEmoji?: string;
+	notePlaceholder?: string;
 	/** No automatic yearly anniversary. */
 	noAnniversary?: boolean;
 	defaultName?: string;
@@ -55,6 +62,8 @@ export const KINDS: Record<TimelineKind, KindDefinition> = {
 	},
 	huis: {
 		label: 'Een huis', emoji: '🏠', hint: 'Verbouwing, onderhoud en alles wat er gebeurde', anchorLabel: 'Sleuteloverdracht', mode: 'duration',
+		hasStatus: true, statusNames: { behaald: 'Klaar', bijstellen: 'Loopt achter', vervallen: 'Geschrapt' },
+		itemLabel: 'Welke klus of gebeurtenis?', defaultEmoji: '🔨', notePlaceholder: 'Wat moet er gebeuren, wie doet het, of wat viel op?',
 		namePlaceholder: 'Bijv. adres of naam van het huis', anchorTitle: () => 'Sleutel gekregen', anchorEmoji: '🔑', anniversaryTitle: 'Jaar in huis', anniversaryEmoji: '🏠',
 		yearLine: (n) => (n === 0 ? 'Het eerste jaar' : `${n} jaar in huis`), duration: (y) => `jaar ${y + 1} in huis`,
 		categories: cats(['verbouwing', 'Verbouwing', '#D0663A'], ['onderhoud', 'Onderhoud', '#1F8A8A'], ['tuin', 'Tuin', '#3E8E4F'], ['aankoop', 'Aankopen', '#B8860B'], ['moment', 'Momenten', '#C8507A'])
@@ -88,3 +97,20 @@ export const STATUSES = [
 	{ id: 'bijstellen', name: 'Bijstellen', color: '#D0663A' },
 	{ id: 'vervallen', name: 'Vervallen', color: '#8E3B46' }
 ] as const;
+
+/** The statuses of a kind of timeline, with the words that kind uses for them. */
+export function statusList(kind: TimelineKind): { id: Status; name: string; color: string }[] {
+	const names = KINDS[kind].statusNames ?? {};
+	return STATUSES.map((s) => ({ id: s.id, name: names[s.id] ?? s.name, color: s.color }));
+}
+export const statusOf = (kind: TimelineKind, id: Status | null) => (id ? statusList(kind).find((s) => s.id === id) ?? null : null);
+
+/**
+ * The status a job gets when it is ticked off, or ticked off again: done, or back to what it was before
+ * (under way when it has started, planned when it has not).
+ */
+export function doneToggle(m: Moment, now: Day): Status {
+	if (m.status !== 'behaald') return 'behaald';
+	const d = m.date.slice(0, 10), [y, mo = '01', da = '01'] = d.split('-');
+	return dayNumber(+y, +mo - 1, +da) <= dayNumber(now.y, now.m, now.d) ? 'bezig' : 'gepland';
+}

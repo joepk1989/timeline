@@ -8,7 +8,6 @@
 	import { ui } from '$lib/state/ui.svelte';
 	import { labelFull, MONTHS, season } from '$lib/domain/dates';
 	import { yearLine } from '$lib/domain/age';
-	import { STATUSES } from '$lib/domain/kinds';
 	import { covers, whenLabel, yearOccurrences } from '$lib/domain/occurrences';
 	import { momentSlides, type ShowWhat } from '$lib/domain/slides';
 	import { momentsLabel, relParts } from '$lib/domain/view';
@@ -188,7 +187,7 @@
 		{#if s}
 			{@const o = s.o}
 			{@const mo = o.moment}
-			{@const st = mo.status ? STATUSES.find((x) => x.id === mo.status) : null}
+			{@const st = mo.status ? app.statuses.find((x) => x.id === mo.status) : null}
 			{#key i}
 				<article class="moment" class:first={i === built.start && !moved} class:hasph={!!s.photo} style:--s={o.m == null ? 'var(--accent)' : `var(--${season(o.m)})`}>
 					<div class="text">

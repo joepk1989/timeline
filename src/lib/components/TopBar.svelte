@@ -2,7 +2,6 @@
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { startPresenting } from '$lib/state/present';
-	import { STATUSES } from '$lib/domain/kinds';
 	import { yearOccurrences } from '$lib/domain/occurrences';
 	import { momentsLabel } from '$lib/domain/view';
 	import type { Status } from '$lib/domain/types';
@@ -68,7 +67,7 @@
 		{/each}
 		{#if app.kind.hasStatus}
 			<span class="sep"></span>
-			{#each STATUSES as st (st.id)}
+			{#each app.statuses as st (st.id)}
 				<Chip on={app.filter.status === st.id} color={st.color} onclick={() => app.setStatus(st.id as Status)}>{st.name}</Chip>
 			{/each}
 		{/if}

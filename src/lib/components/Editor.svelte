@@ -3,7 +3,6 @@
 	import { ui } from '$lib/state/ui.svelte';
 	import { dayNumber, daysInMonth, formatDate, labelFull, MONTHS, parseDate, parseTime } from '$lib/domain/dates';
 	import { ageLabel, yearLine } from '$lib/domain/age';
-	import { STATUSES } from '$lib/domain/kinds';
 	import { newId } from '$lib/data/backend';
 	import { preparePhoto } from '$lib/data/photos';
 	import type { Moment, Status } from '$lib/domain/types';
@@ -23,7 +22,7 @@
 
 	let title = $state(prev?.title ?? '');
 	let note = $state(prev?.note ?? '');
-	let emoji = $state(prev?.emoji ?? (app.kind.hasStatus ? '🎯' : '⭐'));
+	let emoji = $state(prev?.emoji ?? app.kind.defaultEmoji ?? (app.kind.hasStatus ? '🎯' : '⭐'));
 	let status = $state<Status | null>(prev ? prev.status : app.kind.hasStatus ? 'gepland' : null);
 	let cat = $state(prev ? (cats.some((c) => c.id === prev.categoryId) ? prev.categoryId : cats[cats.length - 1].id) : app.filter.categoryId && cats.some((c) => c.id === app.filter.categoryId) ? app.filter.categoryId : cats[0].id);
 	let lvl = $state<'y' | 'm' | 'd'>(s.d != null ? 'd' : s.m != null ? 'm' : 'y');
@@ -171,7 +170,7 @@
 			<h3>{prev.emoji} {prev.title}</h3>
 			<div class="lab">{labelFull(s.y, s.m, s.d)}{#if age}<span class="ageline">{age}</span>{/if}</div>
 			<div class="picks">
-				{#if prev.status}{@const st = STATUSES.find((x) => x.id === prev.status)!}<Chip on color={st.color} onclick={() => {}}>{st.name}</Chip>{/if}
+				{#if prev.status}{@const st = app.statuses.find((x) => x.id === prev.status)!}<Chip on color={st.color} onclick={() => {}}>{st.name}</Chip>{/if}
 				<Chip color={app.catOf(prev.categoryId).color} onclick={() => {}}>{app.catOf(prev.categoryId).name}</Chip>
 			</div>
 			{#if prev.note}<p class="note">{prev.note}</p>{/if}
@@ -185,12 +184,12 @@
 			{:else}
 				<button type="button" class="emoji1" onclick={() => (pickEmoji = true)} aria-label="Symbool {emoji}, kies een ander"><span class="e">{emoji}</span><span>Symbool wijzigen</span></button>
 			{/if}
-			<label>{app.kind.hasStatus ? 'Welk doel of welke mijlpaal?' : 'Wat maakt dit bijzonder?'}
+			<label>{app.kind.itemLabel ?? (app.kind.hasStatus ? 'Welk doel of welke mijlpaal?' : 'Wat maakt dit bijzonder?')}
 				<input type="text" maxlength="80" placeholder="Bijv. Eerste stapjes" bind:value={title} bind:this={nameEl} onkeydown={(e) => e.key === 'Enter' && save()} />
 			</label>
 			{#if showStatus}
 				<div class="lab">Status<div class="picks" role="group" aria-label="Status">
-					{#each STATUSES as st (st.id)}<Chip on={status === st.id} color={st.color} onclick={() => (status = st.id as Status)}>{st.name}</Chip>{/each}
+					{#each app.statuses as st (st.id)}<Chip on={status === st.id} color={st.color} onclick={() => (status = st.id as Status)}>{st.name}</Chip>{/each}
 				</div></div>
 			{/if}
 			<div class="lab">Categorie<div class="picks" role="group" aria-label="Categorie">
@@ -226,7 +225,7 @@
 			{#if lvl !== 'y' && !(lvl === 'd' && period)}
 				<label class="check"><input type="checkbox" bind:checked={repeat} />Komt elk jaar terug</label>
 			{/if}
-			<label>Notitie<textarea maxlength="1000" placeholder={app.kind.hasStatus ? 'Wat is ervoor nodig, of wat moet beter?' : 'Wat je wilt onthouden'} bind:value={note}></textarea></label>
+			<label>Notitie<textarea maxlength="1000" placeholder={app.kind.notePlaceholder ?? (app.kind.hasStatus ? 'Wat is ervoor nodig, of wat moet beter?' : 'Wat je wilt onthouden')} bind:value={note}></textarea></label>
 		{/if}
 
 		{#if !readonly || photos.length}

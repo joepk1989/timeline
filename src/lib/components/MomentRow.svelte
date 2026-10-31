@@ -2,7 +2,6 @@
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { labelFull, season } from '$lib/domain/dates';
-	import { STATUSES } from '$lib/domain/kinds';
 	import { whenTimeLabel } from '$lib/domain/occurrences';
 	import { relParts } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
@@ -10,7 +9,7 @@
 
 	let { o }: { o: Occurrence } = $props();
 	const mo = $derived(o.moment);
-	const st = $derived(mo.status ? STATUSES.find((s) => s.id === mo.status) : null);
+	const st = $derived(mo.status ? app.statuses.find((s) => s.id === mo.status) : null);
 	const cat = $derived(mo.virtual ? null : app.catOf(mo.categoryId));
 	const rel = $derived(relParts(o, app.tl, app.now));
 

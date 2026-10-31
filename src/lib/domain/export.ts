@@ -1,5 +1,5 @@
 import { daysInMonth, labelFull, MONTHS, MONTHS_SHORT, season } from './dates';
-import { KINDS, STATUSES } from './kinds';
+import { KINDS, statusOf } from './kinds';
 import { whenLabel, yearOccurrences, isOverdue } from './occurrences';
 import { yearLine } from './age';
 import type { Slide } from './slides';
@@ -31,7 +31,7 @@ export function printHtml(tl: Timeline, visible: Moment[], scope: Scope, now: Da
 		for (const o of occs) {
 			const mo = o.moment;
 			const extra = [
-				...(mo.status ? [STATUSES.find((s) => s.id === mo.status)!.name] : []),
+				...(mo.status ? [statusOf(tl.kind, mo.status)!.name] : []),
 				...(isOverdue(o, now) ? ['over tijd'] : []),
 				...(mo.virtual ? [] : [catName(mo.categoryId)]),
 				...relParts(o, tl, now).filter((r) => r.kind === 'age').map((r) => r.text)
@@ -178,7 +178,7 @@ export function presentationHtml(tl: Timeline, slides: Slide[], scope: Scope, no
 		const o = s.o, mo = o.moment;
 		const when = [o.m == null ? String(o.y) : o.end ? whenLabel(o) + (o.y === o.end.y ? ` ${o.y}` : '') : labelFull(o.y, o.m, o.d)];
 		for (const r of relParts(o, tl, now)) when.push(r.text);
-		if (mo.status) when.push(STATUSES.find((x) => x.id === mo.status)!.name);
+		if (mo.status) when.push(statusOf(tl.kind, mo.status)!.name);
 		if (!mo.virtual) when.push(catOf(mo.categoryId)?.name ?? 'Overig');
 		if (s.photoCount > 1 && s.photo && s.photoIndex >= 0) when.push(`foto ${s.photoIndex + 1} van ${s.photoCount}`);
 		return {

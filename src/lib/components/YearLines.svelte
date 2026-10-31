@@ -7,11 +7,12 @@
 	import { app } from '$lib/state/app.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { MONTHS, MONTHS_SHORT, WEEKDAYS, season } from '$lib/domain/dates';
-	import { whenLabel, whenTimeLabel, yearOccurrences } from '$lib/domain/occurrences';
+	import { isOverdue, whenLabel, whenTimeLabel, yearOccurrences } from '$lib/domain/occurrences';
 	import { yearPos, yearsSpans, dayLabel, dayOfYear, monthSpans, packRows, partSpans, partX, yearLines, yearX } from '$lib/domain/view';
 	import type { Occurrence } from '$lib/domain/types';
 	import DayLine from './DayLine.svelte';
 	import Icon from './Icon.svelte';
+	import DoneCheck from './DoneCheck.svelte';
 
 	let {
 		y,
@@ -130,6 +131,9 @@
 		widths.set(key, w);
 		return w;
 	}
+	/** A job on a timeline with statuses can be ticked off from its block. */
+	const ticks = (o: Occurrence) => !compact && app.canEdit && app.kind.hasStatus && !o.moment.virtual && !o.moment.repeat;
+	const statusColor = (o: Occurrence) => (isOverdue(o, app.now) ? 'var(--danger)' : app.statuses.find((x) => x.id === o.moment.status)?.color ?? 'var(--muted)');
 	/** Lays the blocks out on rows, their names in `font` px (when presenting) so a block is as wide as its name. */
 	function layout(font: number) {
 		const all = lines.items.map((it) => {
@@ -137,7 +141,7 @@
 			const from = x(it.from);
 			const days = Math.max(4, x(it.to + 1) - from - 2);
 			const name = textWidth(`${it.o.moment.emoji} ${it.o.moment.title}`, compact ? `700 ${font}px` : '600 14px');
-			const text = (compact ? name : Math.max(name, textWidth(whenTimeLabel(it.o), '12px') + 14)) + (compact ? 20 * K + 12 : 36);
+			const text = (compact ? name : Math.max(name, textWidth(whenTimeLabel(it.o), '12px') + 14)) + (compact ? 20 * K + 12 : 36) + (ticks(it.o) ? 26 : 0);
 			// As wide as its days, and at least as wide as its name (up to a limit): a whole year spans the year.
 			const w = Math.min(Math.max(days, Math.min(text, compact ? font * 18 : 280)), full);
 			const left = Math.max(0, Math.min(from, full - w));
@@ -538,6 +542,8 @@
 			{#if b.shown}
 				<button
 					class="block"
+					class:ticked={ticks(b.it.o)}
+					class:done={b.it.o.moment.status === 'behaald'}
 					class:on={focus === b.it.o.moment.id}
 					aria-current={focus === b.it.o.moment.id ? 'true' : undefined}
 					style:left="{b.left}px"
@@ -548,8 +554,11 @@
 				>
 					<span class="days" style:left="{b.from - b.left}px" style:width="{b.days}px" aria-hidden="true"></span>
 					<span class="l1"><span class="e">{b.it.o.moment.emoji}</span> <span class="t">{b.it.o.moment.title}</span></span>
-					{#if !compact}<span class="l2"><span class="sq" aria-hidden="true"></span>{whenTimeLabel(b.it.o)}</span>{/if}
+					{#if !compact}<span class="l2"><span class="sq" style:background={b.it.o.moment.status ? statusColor(b.it.o) : null} aria-hidden="true"></span>{whenTimeLabel(b.it.o)}{#if isOverdue(b.it.o, app.now)}{' · over tijd'}{/if}</span>{/if}
 				</button>
+				{#if ticks(b.it.o)}
+					<span class="tickw" style:left="{b.left + 8}px" style:top="{HEAD + 10 + b.row * ROW + (BLOCK - 24) / 2}px"><DoneCheck m={b.it.o.moment} /></span>
+				{/if}
 			{/if}
 		{/each}
 	</div>
@@ -630,6 +639,11 @@
 	.block .l1 { font-size: 14px; line-height: 18px; }
 	.block .t { font-weight: 700; }
 	.block .l2 { font-size: 12px; line-height: 15px; color: var(--muted); }
+	/* A job that can be ticked off has room for the check at its left; one that is done is quiet. */
+	.block.ticked { padding-left: 38px; }
+	.tickw { position: absolute; z-index: 4; transition: left var(--ease), top var(--ease); }
+	.block.done .t { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--muted); }
+	.block.done { opacity: 0.8; }
 	.block .sq { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--muted); margin-right: 6px; vertical-align: 0; }
 	@media (hover: hover) {
 		.month:hover { filter: var(--hover-filter); }
