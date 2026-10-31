@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+# Every address opens the app (an invite link such as /deel/abc too).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

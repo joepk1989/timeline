@@ -1,5 +1,4 @@
 /// <reference types="vitest/config" />
-import adapterAuto from '@sveltejs/adapter-auto';
 import adapterStatic from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
@@ -15,10 +14,9 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 
-			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-			adapter: staticBuild ? adapterStatic({ fallback: 'index.html' }) : adapterAuto(),
+			// The app runs in the browser only, so it is a set of static files with one page for every address
+			// (`fallback`): any static host serves it (Vercel, Netlify, Cloudflare Pages). See vercel.json and netlify.toml.
+			adapter: adapterStatic({ fallback: 'index.html' }),
 			// `STATIC=1 npm run build` makes a self-contained build in /build that works from any folder,
 			// for example to try the app on a phone without a server of your own.
 			...(staticBuild ? { router: { type: 'hash' as const }, paths: { relative: true }, appDir: 'app' } : {})

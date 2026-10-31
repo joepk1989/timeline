@@ -28,7 +28,7 @@
 		try {
 			const l = await createShareLink(sb, timelineId, role);
 			links.push(l);
-			if (navigator.share) navigator.share({ title: 'Tijdlijn', url: url(l.token) }).catch(() => {});
+			if (navigator.share) navigator.share({ title: 'Timelessline', url: url(l.token) }).catch(() => {});
 			else copy(l.token);
 		} catch { app.toast('Link maken lukte niet'); }
 	}

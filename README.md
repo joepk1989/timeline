@@ -1,4 +1,4 @@
-# Tijdlijn
+# Timelessline
 
 Een tijdlijn voor een leven, een kind, een huis, een relatie, een bedrijf of een plan.
 Jaren om doorheen te swipen, maanden in de kleur van hun seizoen, momenten met foto's,
@@ -37,8 +37,11 @@ Na het inloggen kun je in het menu de tijdlijnen van dit apparaat online zetten.
 
 ## Online zetten
 
-Vervang `@sveltejs/adapter-auto` door de adapter van je host (Vercel of Netlify) en zet
-`PUBLIC_SUPABASE_URL` en `PUBLIC_SUPABASE_ANON_KEY` als omgevingsvariabelen.
+De app is een set statische bestanden (`npm run build` maakt ze in `build/`), met één pagina voor elk adres.
+Elke statische host werkt: de instellingen voor Vercel staan in `vercel.json`, voor Netlify in `netlify.toml`.
+Zet `PUBLIC_SUPABASE_URL` en `PUBLIC_SUPABASE_ANON_KEY` als omgevingsvariabelen bij de host.
+
+Het volledige stappenplan voor timelessline.com staat in [`docs/live-zetten.md`](docs/live-zetten.md).
 
 ## Controleren
 
