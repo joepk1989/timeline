@@ -210,7 +210,19 @@
 			hover = m;
 		}, m == null ? 250 : 90);
 	}
+	// The screens around the line want to know how far it is zoomed in.
+	$effect(() => {
+		if (compact) return;
+		ui.lineZoom = day != null ? 'day' : pinned != null ? 'month' : 'year';
+		return () => { ui.lineZoom = 'year'; };
+	});
+	const canHover = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 	function pin(m: number | null) {
+		// Nothing says a month can be clicked: the year page says it, until the first time one is.
+		if (m != null && !ui.zoomHintSeen) {
+			ui.zoomHintSeen = true;
+			try { localStorage.setItem('tijdlijn.hint.zoom', '1'); } catch { /* ignore */ }
+		}
 		clearTimeout(timer);
 		clearTimeout(dayTimer);
 		hover = null;
@@ -279,6 +291,17 @@
 		if (day != null) day = null;
 		else pin(null);
 	}
+	// On a touch screen there is no hover plus: holding a day down adds a moment to it.
+	let hold: ReturnType<typeof setTimeout> | undefined;
+	function holdStart(e: PointerEvent, m: number, d: number) {
+		if (e.pointerType === 'mouse' || !app.canEdit) return;
+		clearTimeout(hold);
+		hold = setTimeout(() => {
+			navigator.vibrate?.(10);
+			ui.editor = { id: null, y, m, d };
+		}, 550);
+	}
+	const holdEnd = () => clearTimeout(hold);
 
 	function openMoment(o: Occurrence) {
 		if (!o.moment.virtual) ui.editor = { id: o.moment.id, y: o.y, m: o.m, d: o.d };
@@ -435,6 +458,12 @@
 				{/if}
 			</button>
 		{/each}
+		{#if pinned != null && !compact}
+			<!-- One way back, always in the same place: the year, or the whole month from a day. -->
+			<button class="bk" style:left="{spans[pinned].left + 6}px" style:top="{(HEAD - ROWH) / 2 - 15}px" onclick={back} aria-label={day != null ? `Terug naar heel ${MONTHS[pinned]}` : `Terug naar ${y}`}>
+				<Icon name="back" /><span>{day != null ? MONTHS_SHORT[pinned] : y}</span>
+			</button>
+		{/if}
 		{#if dm != null && !compact}
 			{@const sp = spans[dm]}
 			{#each { length: sp.days } as _, i (i)}
@@ -459,6 +488,11 @@
 						style:width="{box.width}px"
 						aria-label="{i + 1} {MONTHS[sp.m]} bekijken"
 						onpointerenter={(e) => pointDay(i + 1, e)}
+						onpointerdown={(e) => holdStart(e, sp.m, i + 1)}
+						onpointerup={holdEnd}
+						onpointercancel={holdEnd}
+						onpointerleave={holdEnd}
+						oncontextmenu={(e) => !canHover && e.preventDefault()}
 						onclick={() => {
 							// From a month pointed at in the year, a click on a day goes straight to that day.
 							if (pinned !== sp.m) pin(sp.m);
@@ -494,6 +528,11 @@
 			{/if}
 		{/if}
 		{#if todayDoy != null && day == null}<div class="today" style:left="{x(todayDoy + 0.5)}px" aria-hidden="true"></div>{/if}
+		{#if !compact && pinned != null && day == null && !blocks.list.some((b) => b.shown)}
+			<p class="none" style:left="{spans[pinned].left}px" style:width="{spans[pinned].width}px" style:top="{HEAD + 24}px">
+				Nog niets in {MONTHS[pinned]}.{app.canEdit ? (canHover ? ' Klik op de plus bij een dag om iets toe te voegen.' : ' Houd een dag ingedrukt om iets toe te voegen.') : ''}
+			</p>
+		{/if}
 
 		{#each blocks.list as b, i (b.it.o.moment.id + i)}
 			{#if b.shown}
@@ -566,6 +605,12 @@
 	.stp :global(svg) { width: 14px; height: 14px; }
 	@media (hover: hover) { .stp:hover { background: var(--hover); } }
 	.daylbl b { font-weight: 800; font-variant-numeric: tabular-nums; }
+	/* The way back, in the bar of the month over the full width. */
+	.bk { position: absolute; z-index: 5; height: 30px; display: inline-flex; align-items: center; gap: 2px; padding: 0 10px 0 6px; border: none; border-radius: 999px; background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background-color 0.15s, left var(--ease); }
+	.bk :global(svg) { width: 16px; height: 16px; }
+	@media (hover: hover) { .bk:hover { background: var(--bg); } }
+	/* A word in an empty month. */
+	.none { position: absolute; margin: 0; padding: 0 16px; text-align: center; color: var(--muted); font-size: 14px; pointer-events: none; }
 	/* The plus that adds a moment: small, round, only while the mouse is on its month or day. */
 	.plus { position: absolute; z-index: 5; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: var(--ink); color: var(--bg);
 		cursor: pointer; box-shadow: 0 2px 8px rgba(10, 20, 30, 0.2); animation: fade 0.15s both; transition: transform 0.15s, left var(--ease); }

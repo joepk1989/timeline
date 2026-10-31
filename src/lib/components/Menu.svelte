@@ -116,6 +116,13 @@
 		if (f) await run(() => app.restore(f));
 	}
 	const close = () => (ui.menu = null);
+	const canFullscreen = typeof document !== 'undefined' && document.fullscreenEnabled;
+	let fullscreen = $state(typeof document !== 'undefined' && !!document.fullscreenElement);
+	function toggleFullscreen() {
+		if (document.fullscreenElement) document.exitFullscreen();
+		else document.documentElement.requestFullscreen().catch(() => app.toast('Volledig scherm is hier niet beschikbaar'));
+		close();
+	}
 	let photoInput: HTMLInputElement | undefined = $state();
 	function addPhotos() {
 		const files = [...(photoInput?.files ?? [])];
@@ -131,8 +138,12 @@
 		<div class="head"><h2>{app.tl.name}</h2><Btn variant="pill" onclick={close}>Klaar</Btn></div>
 
 		<section class="box" aria-labelledby="h-view">
-			<div class="sh"><h3 id="h-view">Het jaar als</h3></div>
+			<div class="sh"><h3 id="h-view">Weergave</h3></div>
 			<div class="view"><Seg label="Het jaar als" value={app.yearView} onchange={(v) => app.setYearView(v)} options={[['lijn', 'Jaarlijn'], ['maanden', 'Maanden']]} /></div>
+			<div class="bk">
+				<Btn variant="ghost" onclick={() => ui.toggleTheme?.()}>{ui.theme === 'dark' ? 'Licht thema' : 'Donker thema'}</Btn>
+				{#if canFullscreen}<Btn variant="ghost" onclick={toggleFullscreen}>{fullscreen ? 'Volledig scherm sluiten' : 'Volledig scherm'}</Btn>{/if}
+			</div>
 		</section>
 
 		<section class="box" aria-labelledby="h-scope">

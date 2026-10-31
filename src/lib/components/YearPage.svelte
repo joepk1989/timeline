@@ -20,6 +20,7 @@
 	const photos = $derived<GalleryItem[]>(real.flatMap((o) => o.moment.photos.map((path) => ({ path, o }))));
 	// Placeholders for a year without photos: the icons of its moments, or a few cheerful ones.
 	const cards = $derived(driftCards(7, y));
+	try { ui.zoomHintSeen = localStorage.getItem('tijdlijn.hint.zoom') === '1'; } catch { /* no storage */ }
 	// On a phone the photos make way: the year sits small on top and the Jaarlijn gets the rest of the screen.
 	let vw = $state(1024);
 	const phone = $derived(vw <= 640);
@@ -94,7 +95,13 @@
 			</div>
 			{/if}
 		</div>
-		<div class="lines" style:view-transition-name={morphs ? 'pres-months' : null}><YearLines {y} {occs} half={!phone} /></div>
+		<div class="lines" style:view-transition-name={morphs ? 'pres-months' : null}>
+			{#if !ui.zoomHintSeen && real.length && app.canEdit}
+				<!-- Nothing says the months can be clicked: this does, until the first time one is. -->
+				<div class="hint" aria-live="polite">{canHover ? 'Klik op een maand om in te zoomen' : 'Tik op een maand om in te zoomen'}</div>
+			{/if}
+			<YearLines {y} {occs} half={!phone} />
+		</div>
 	</div>
 {:else}
 	<div class="page-in">
@@ -137,7 +144,10 @@
 	.ph { flex: 0 0 auto; height: 100%; max-height: 420px; aspect-ratio: 4 / 3; padding: 0; border: none; border-radius: 10px; overflow: hidden; background: var(--line); cursor: zoom-in; transition: filter 0.15s, transform 0.2s; }
 	.ph :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; }
 	@media (hover: hover) { .ph:hover { filter: var(--hover-filter); } }
-	.lines { flex: 0 0 auto; }
+	.lines { flex: 0 0 auto; position: relative; }
+	.hint { position: absolute; left: 50%; top: 42px; z-index: 4; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; animation: hintin 0.4s 0.8s both; }
+	@keyframes hintin { from { opacity: 0; transform: translate(-50%, 6px); } }
+	@media (prefers-reduced-motion: reduce) { .hint { animation: none; } }
 	.big { margin: 0; font-size: clamp(84px, 20vw, 168px); font-weight: 800; letter-spacing: -0.055em; line-height: 0.85; }
 	.big.now { color: var(--accent); }
 	.count { color: var(--muted); font-size: 15px; margin: 10px 0 18px; }
@@ -149,9 +159,10 @@
 	@media (max-width: 640px) {
 		.page-in { padding: 14px 14px 110px; }
 		/* On a phone no photos on top: the year small, the Jaarlijn takes the rest of the screen. */
-		.upper { flex: 0 0 auto; padding: 10px 14px 8px; }
+		.upper { flex: 0 0 auto; padding: 6px 14px 4px; }
 		.yr { align-self: flex-start; display: flex; align-items: baseline; gap: 12px; }
-		.yr .big { font-size: 52px; }
+		/* The year itself stands in the row of years above: not twice. */
+		.yr .big { display: none; }
 		.yr .count { margin: 0; font-size: 14px; }
 		.yr .stsum { margin: 4px 0 0; }
 		.lines { flex: 1 0 auto; }

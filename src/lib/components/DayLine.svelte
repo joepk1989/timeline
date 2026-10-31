@@ -88,13 +88,28 @@
 		return { before: n(from.y, from.m, from.d) < here, after: n(to.y, to.m, to.d) > here, from: short(from), to: short(to) };
 	}
 
-	/** Adding at a time: a double click on an empty spot of the hours. */
-	function addAt(e: MouseEvent) {
+	/** Adding at a time: a double click on an empty spot of the hours, or holding it down on a touch screen. */
+	function addAt(e: MouseEvent | PointerEvent) {
 		if (!app.canEdit || (e.target as HTMLElement).closest('button')) return;
 		const lane = e.currentTarget as HTMLElement;
 		const px = e.clientX - lane.getBoundingClientRect().left;
 		ui.editor = { id: null, y, m, d, time: formatTime(timeAt(px, openH != null ? 5 : 15)) };
 	}
+	let hold: ReturnType<typeof setTimeout> | undefined, holdAt = { x: 0, y: 0 };
+	function holdStart(e: PointerEvent) {
+		if (e.pointerType === 'mouse') return;
+		clearTimeout(hold);
+		holdAt = { x: e.clientX, y: e.clientY };
+		const lane = e.currentTarget as HTMLElement, target = e.target as HTMLElement, clientX = e.clientX;
+		hold = setTimeout(() => {
+			navigator.vibrate?.(10);
+			addAt({ currentTarget: lane, target, clientX } as unknown as PointerEvent);
+		}, 550);
+	}
+	const holdEnd = () => clearTimeout(hold);
+	/** A finger that moves more than a little is scrolling, not holding. */
+	const holdMove = (e: PointerEvent) => Math.hypot(e.clientX - holdAt.x, e.clientY - holdAt.y) > 8 && holdEnd();
+	const canHover = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
 	// Esc folds an hour back first, before the day itself.
 	function onkey(e: KeyboardEvent) {
 		if (e.key !== 'Escape' || openH == null || document.querySelector('dialog[open]')) return;
@@ -153,7 +168,7 @@
 		<div class="list">
 			<!-- The moments with a time, on their hours. A double click on an empty spot adds one at that time. -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="lane" style:height="{Math.max(laneH, plan.timed.length ? 0 : 44)}px" ondblclick={addAt}>
+			<div class="lane" style:height="{Math.max(laneH, plan.timed.length ? 0 : 44)}px" ondblclick={addAt} onpointerdown={holdStart} onpointerup={holdEnd} onpointercancel={holdEnd} onpointermove={holdMove} oncontextmenu={(e) => !canHover && e.preventDefault()}>
 				{#each blocks.list as bx, i (bx.t.o.moment.id + i)}
 					{@const mo = bx.t.o.moment}
 					<button
@@ -172,7 +187,7 @@
 						<span class="l2">{bx.t.label}</span>
 					</button>
 				{:else}
-					{#if !plan.allDay.length}<p class="empty">Niets op {weekday} {d} {MONTHS[m]}.</p>{/if}
+					{#if !plan.allDay.length}<p class="empty">Niets op {weekday} {d} {MONTHS[m]}.{app.canEdit ? (canHover ? ' Dubbelklik op een tijd om iets toe te voegen.' : ' Houd een tijd ingedrukt om iets toe te voegen.') : ''}</p>{/if}
 				{/each}
 			</div>
 

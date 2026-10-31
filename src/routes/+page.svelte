@@ -29,6 +29,8 @@
 		chosen = theme === 'dark' ? 'light' : 'dark';
 		try { localStorage.setItem('tijdlijn.theme', chosen); } catch { /* ignore */ }
 	}
+	ui.toggleTheme = toggleTheme;
+	$effect(() => { ui.theme = theme; });
 
 	onMount(async () => {
 		try { chosen = localStorage.getItem('tijdlijn.theme'); } catch { /* ignore */ }
@@ -57,10 +59,11 @@
 		{:else}
 			{#if app.mode === 'year' && app.yearView === 'lijn'}<YearsRow />{/if}
 			<Pager />
-			{#if app.canEdit}
-				<button class="fab" onclick={add}><Icon name="plus" />Toevoegen</button>
-			{:else}
+			{#if !app.canEdit}
 				<div class="ro">Alleen bekijken</div>
+			{:else if !(app.mode === 'year' && app.yearView === 'lijn' && ui.lineZoom !== 'year')}
+				<!-- Zoomed into a month or a day, the Jaarlijn has its own plus; the big one would only cover moments. -->
+				<button class="fab" onclick={add}><Icon name="plus" />Toevoegen</button>
 			{/if}
 		{/if}
 	{:else}

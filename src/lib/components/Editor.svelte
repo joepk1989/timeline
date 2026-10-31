@@ -42,6 +42,10 @@
 	let saved = false;
 	let dateTouched = !!prev;
 	let nameEl: HTMLInputElement | undefined = $state();
+	// On a phone the row of symbols is folded into the chosen one, to keep the form short.
+	let vw = $state(1024);
+	let pickEmoji = $state(false);
+	const emojiRow = $derived(vw > 640 || pickEmoji);
 	let fileEl: HTMLInputElement | undefined = $state();
 
 	const showStatus = app.kind.hasStatus || !!prev?.status;
@@ -159,6 +163,8 @@
 	}
 </script>
 
+<svelte:window bind:innerWidth={vw} />
+
 <Dialog open={!!ui.editor} onclose={close} label={readonly ? 'Moment' : prev ? 'Moment bewerken' : 'Nieuw moment'}>
 	<div class="dlg">
 		{#if readonly && prev}
@@ -171,10 +177,14 @@
 			{#if prev.note}<p class="note">{prev.note}</p>{/if}
 		{:else}
 			<h3>{prev ? 'Moment bewerken' : 'Nieuw moment'}</h3>
-			<div class="emojis" role="group" aria-label="Symbool">
-				{#each EMOJIS as em (em)}<button type="button" class:on={em === emoji} aria-pressed={em === emoji} aria-label="Symbool {em}" onclick={() => (emoji = em)}>{em}</button>{/each}
-				{#if !EMOJIS.includes(emoji)}<button type="button" class="on" aria-pressed="true">{emoji}</button>{/if}
-			</div>
+			{#if emojiRow}
+				<div class="emojis" role="group" aria-label="Symbool">
+					{#each EMOJIS as em (em)}<button type="button" class:on={em === emoji} aria-pressed={em === emoji} aria-label="Symbool {em}" onclick={() => { emoji = em; pickEmoji = false; }}>{em}</button>{/each}
+					{#if !EMOJIS.includes(emoji)}<button type="button" class="on" aria-pressed="true">{emoji}</button>{/if}
+				</div>
+			{:else}
+				<button type="button" class="emoji1" onclick={() => (pickEmoji = true)} aria-label="Symbool {emoji}, kies een ander"><span class="e">{emoji}</span><span>Symbool wijzigen</span></button>
+			{/if}
 			<label>{app.kind.hasStatus ? 'Welk doel of welke mijlpaal?' : 'Wat maakt dit bijzonder?'}
 				<input type="text" maxlength="80" placeholder="Bijv. Eerste stapjes" bind:value={title} bind:this={nameEl} onkeydown={(e) => e.key === 'Enter' && save()} />
 			</label>
@@ -256,6 +266,9 @@
 	.clear { align-self: flex-end; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; }
 	@media (hover: hover) { .clear:hover { background: var(--hover); } }
 	.emojis { display: flex; flex-wrap: wrap; gap: 6px; }
+	.emoji1 { align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; padding: 4px 14px 4px 4px; border: 1px solid var(--line); border-radius: 999px; background: transparent; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; }
+	.emoji1 .e { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; background: var(--bg); font-size: 20px; }
+	@media (hover: hover) { .emoji1:hover { background: var(--hover); } }
 	.emojis button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: transparent; font-size: 19px; cursor: pointer; }
 	.emojis button.on { border: 2px solid var(--ink); background: var(--bg); }
 	.photos { display: flex; flex-wrap: wrap; gap: 10px; }

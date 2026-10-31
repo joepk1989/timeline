@@ -22,6 +22,13 @@ class UiState {
 	allYears = $state(false);
 	/** The year pointed at, in the row of years or among the columns of all years. */
 	yearHover = $state<number | null>(null);
+	/** Whether a month was ever zoomed into: until then the year page says that it can be. */
+	zoomHintSeen = $state(true);
+	/** How far the Jaarlijn on show is zoomed in: the whole year, a month over the full width, or a day. */
+	lineZoom = $state<'year' | 'month' | 'day'>('year');
+	/** The theme, and how to switch it (set by the page), so the menu can offer it too. */
+	theme = $state<'light' | 'dark'>('light');
+	toggleTheme: (() => void) | null = null;
 }
 
 export const ui = new UiState();

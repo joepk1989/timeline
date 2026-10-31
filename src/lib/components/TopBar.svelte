@@ -64,9 +64,9 @@
 			<span class="txt"><b>{app.tl.name}</b><small>{sub}</small></span>
 			<Icon name="down" />
 		</button>
-		<Btn variant="pill" onclick={ontheme} aria-label={theme === 'dark' ? 'Licht thema' : 'Donker thema'}>
+		<span class="th"><Btn variant="pill" onclick={ontheme} aria-label={theme === 'dark' ? 'Licht thema' : 'Donker thema'}>
 			<Icon name={theme === 'dark' ? 'sun' : 'moon'} /><span class="lbl">{theme === 'dark' ? 'Licht' : 'Donker'}</span>
-		</Btn>
+		</Btn></span>
 		{#if canFullscreen}
 			<span class="fs"><Btn variant="pill" onclick={toggleFullscreen} aria-label="Volledig scherm"><Icon name="full" /><span class="lbl">{fullscreen ? 'Sluiten' : 'Volledig scherm'}</span></Btn></span>
 		{/if}
@@ -142,7 +142,8 @@
 	.labels { max-width: 1000px; width: 100%; margin: 0 auto; padding: 4px 20px 8px; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
 	.fs { display: contents; }
 	@media (max-width: 640px) {
-		.fs { display: none; }
+		/* Theme and full screen live in the menu on a phone: room for the title. */
+		.fs, .th { display: none; }
 		.in, .minimap, .labels, .filters { padding-left: 14px; padding-right: 14px; }
 	}
 	@media (min-width: 1200px) {
