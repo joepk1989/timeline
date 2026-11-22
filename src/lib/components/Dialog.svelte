@@ -3,6 +3,9 @@
 	// A modal <dialog>. `side` slides in from the right (menu), `card` is centred, `bare` has no chrome (gallery).
 	let { open, onclose, label, kind = 'card', children }: { open: boolean; onclose: () => void; label: string; kind?: 'card' | 'side' | 'bare'; children: Snippet } = $props();
 	let el: HTMLDialogElement;
+	// A click beside the dialog (on its backdrop) closes it, as Esc does. Only when the press started there
+	// too: selecting text inside and letting go outside must not close it.
+	let downOutside = false;
 	$effect(() => {
 		if (open && !el.open) el.showModal();
 		else if (!open && el.open) el.close();
@@ -14,7 +17,11 @@
 	class={kind}
 	aria-label={label}
 	onclose={() => open && onclose()}
-	onclick={(e) => e.target === el && kind !== 'card' && onclose()}
+	onpointerdown={(e) => (downOutside = e.target === el)}
+	onclick={(e) => {
+		if (e.target === el && downOutside) onclose();
+		downOutside = false;
+	}}
 >
 	{#if open}{@render children()}{/if}
 </dialog>

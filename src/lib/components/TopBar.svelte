@@ -16,6 +16,11 @@
 	// as a panel over the page when pointed at or opened with the arrow.
 	const fold = true;
 	let open = $state(false);
+	let headerEl: HTMLElement | undefined = $state();
+	// The panel with the filters and the years folds away again at a click anywhere outside it.
+	function outside(e: PointerEvent) {
+		if (open && headerEl && !headerEl.contains(e.target as Node)) open = false;
+	}
 	$effect(() => { if (!fold) open = false; });
 	const canFullscreen = typeof document !== 'undefined' && document.fullscreenEnabled;
 	function toggleFullscreen() {
@@ -37,9 +42,9 @@
 	});
 </script>
 
-<svelte:document onfullscreenchange={() => (fullscreen = !!document.fullscreenElement)} />
+<svelte:document onfullscreenchange={() => (fullscreen = !!document.fullscreenElement)} onpointerdown={outside} />
 
-<header>
+<header bind:this={headerEl}>
 	<div class="in">
 		<button class="tl" onclick={() => (ui.picker = true)} aria-haspopup="dialog" aria-label="Kies een tijdlijn, nu: {app.tl.name}">
 			<span class="em">{app.kind.emoji}</span>
