@@ -1,5 +1,5 @@
 /** Kinds of timeline a user can create. Each kind sets default categories and how time is counted. */
-export type TimelineKind = 'kind' | 'mij' | 'relatie' | 'huisdier' | 'huis' | 'bedrijf' | 'plan' | 'anders';
+export type TimelineKind = 'kind' | 'mij' | 'relatie' | 'huisdier' | 'huis' | 'bedrijf' | 'game' | 'plan' | 'anders';
 
 /** Status of a goal or plan item. Only shown for timelines whose kind supports it, or items that already have one. */
 export type Status = 'gepland' | 'bezig' | 'behaald' | 'bijstellen' | 'vervallen';

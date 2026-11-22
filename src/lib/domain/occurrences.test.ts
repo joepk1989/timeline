@@ -57,6 +57,7 @@ describe('occurrences', () => {
 		expect(whenTimeLabel(at({}))).toBe('5 okt');
 		expect(whenTimeLabel(at({ time: '09:00' }))).toBe('5 okt · 09:00');
 		expect(whenTimeLabel(at({ time: '09:00', endTime: '10:30' }))).toBe('5 okt · 09:00–10:30');
+		expect(whenTimeLabel(at({ time: '16:40', endTime: '16:40' }))).toBe('5 okt · 16:40');
 		expect(whenTimeLabel(yearOccurrences([{ ...base, date: '2026-10', time: '09:00' }], 2026)[0])).toBe('oktober');
 	});
 });

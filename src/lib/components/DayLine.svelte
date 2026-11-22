@@ -58,7 +58,7 @@
 		return v;
 	}
 	/** A job on a timeline with statuses can be ticked off from here. */
-	const ticks = (o: Occurrence) => app.canEdit && app.kind.hasStatus && !o.moment.virtual && !o.moment.repeat;
+	const ticks = (o: Occurrence) => app.canEdit && app.kind.hasStatus && !o.moment.virtual && !o.moment.repeat && o.moment.status !== 'vervallen';
 	const ROW = 50;
 	const blocks = $derived.by(() => {
 		const boxes = plan.timed.map((t) => {
@@ -178,6 +178,7 @@
 						class="blk"
 						class:ticked={ticks(bx.t.o)}
 						class:done={mo.status === 'behaald'}
+						class:cut={mo.status === 'vervallen'}
 						class:before={bx.t.before}
 						class:after={bx.t.after}
 						style:left="{bx.left}px"
@@ -204,7 +205,7 @@
 						{@const mo = o.moment}
 						{@const e = edges(o)}
 						<div class="cw" class:before={e.before}>
-						<button class="bar" class:ticked={ticks(o)} class:done={mo.status === 'behaald'} class:before={e.before} class:after={e.after} onclick={() => onopen(o)} style:animation-delay="{120 + i * 60}ms">
+						<button class="bar" class:ticked={ticks(o)} class:done={mo.status === 'behaald'} class:cut={mo.status === 'vervallen'} class:before={e.before} class:after={e.after} onclick={() => onopen(o)} style:animation-delay="{120 + i * 60}ms">
 							{#if e.before}<span class="cont l" aria-hidden="true"><Icon name="back" />{e.from}</span>{/if}
 							<span class="em" aria-hidden="true">{mo.emoji}</span>
 							<span class="txt">
@@ -284,6 +285,8 @@
 	.bar.ticked.before { padding-left: 50px; }
 	.blk.done .l1 b, .bar.done .ttl { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--muted); }
 	.blk.done, .bar.done { opacity: 0.8; }
+	.blk.cut, .bar.cut { opacity: 0.55; }
+	.blk.cut .l1 b, .bar.cut .ttl { text-decoration: line-through; color: var(--muted); }
 	.cards { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
 	.bar { position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 10px 16px; border: none; border-radius: 14px; background: var(--surface); color: var(--ink);
 		box-shadow: 0 1px 0 var(--line), 0 6px 18px rgba(10, 20, 30, 0.06); font: inherit; text-align: left; cursor: pointer; animation: rise 0.35s ease both; transition: filter 0.15s; }

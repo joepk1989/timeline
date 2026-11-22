@@ -4,18 +4,30 @@ import type { Day, Moment, Status, Timeline } from './types';
 
 export const RENOVATION_DEMO_NAME = 'Demo: verbouwing van het huis';
 
+/** `YYYY-MM-DD` of the day `offset` days from `now`. */
+export const dayFrom = (now: Day) => (offset: number) => {
+	const t = new Date(Date.UTC(now.y, now.m, now.d + offset));
+	return formatDate(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
+};
+
+/** A planned job: [from (days from today), length in days (1 = a single day), emoji, title, category, status, note, time of day]. */
+export type PlanRow = [number, number, string, string, string, Status | null, string, [string, string?]?];
+
+/** Moments from planned jobs, spread around `now`: a job longer than a day becomes a period. */
+export function planMoments(rows: PlanRow[], now: Day, timelineId: string, makeId: () => string): Moment[] {
+	const at = dayFrom(now);
+	return rows.map(([from, len, emoji, title, categoryId, status, note, time]) => ({
+		id: makeId(), timelineId, date: at(from), end: len > 1 ? at(from + len - 1) : null, emoji, title, categoryId, status, note,
+		repeat: false, photos: [], time: len === 1 && time ? time[0] : null, endTime: len === 1 && time?.[1] ? time[1] : null
+	}));
+}
+
 /**
  * Demo: a house being renovated, with the jobs spread around today: some done, some under way, one behind
  * schedule, one overdue, and the rest planned. Dates are relative to `now`.
  */
 export function renovationDemo(now: Day, makeId: () => string): { timeline: Timeline; moments: Moment[] } {
-	const at = (offset: number) => {
-		const t = new Date(Date.UTC(now.y, now.m, now.d + offset));
-		return formatDate(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
-	};
-	// [from (days from today), length in days (1 = a single day), emoji, title, category, status, note, time]
-	type Row = [number, number, string, string, string, Status | null, string, [string, string]?];
-	const R: Row[] = [
+	const R: PlanRow[] = [
 		[-70, 7, '🔨', 'Sloopwerk keuken en badkamer', 'verbouwing', 'behaald', 'Alles tot op de muren eruit. Drie containers puin.'],
 		[-62, 1, '📐', 'Aannemer gekozen', 'verbouwing', 'behaald', 'Offerte van € 38.500 geaccepteerd, oplevering in december.'],
 		[-56, 14, '⚡', 'Nieuwe elektra en groepenkast', 'verbouwing', 'behaald', 'Extra groepen voor inductie en oven.'],
@@ -36,10 +48,8 @@ export function renovationDemo(now: Day, makeId: () => string): { timeline: Time
 		id: makeId(), name: RENOVATION_DEMO_NAME, kind: 'huis', anchor: formatDate(now.y - 3, 4, 12),
 		categories: KINDS.huis.categories.map((c) => ({ ...c })), scope: { from: now.y - 1, to: now.y + 1 }, demo: true
 	};
-	const moments: Moment[] = R.map(([from, len, emoji, title, categoryId, status, note, time]) => ({
-		id: makeId(), timelineId: timeline.id, date: at(from), end: len > 1 ? at(from + len - 1) : null, emoji, title, categoryId, status, note,
-		repeat: false, photos: [], time: len === 1 && time ? time[0] : null, endTime: len === 1 && time ? time[1] : null
-	}));
+	const moments = planMoments(R, now, timeline.id, makeId);
+	const at = dayFrom(now);
 	// Yearly maintenance comes back by itself.
 	moments.push({
 		id: makeId(), timelineId: timeline.id, date: at(-300), end: null, emoji: '🔥', title: 'CV-ketel laten onderhouden', categoryId: 'onderhoud', status: null,

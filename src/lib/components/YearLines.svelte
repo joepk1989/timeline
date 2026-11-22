@@ -132,7 +132,7 @@
 		return w;
 	}
 	/** A job on a timeline with statuses can be ticked off from its block. */
-	const ticks = (o: Occurrence) => !compact && app.canEdit && app.kind.hasStatus && !o.moment.virtual && !o.moment.repeat;
+	const ticks = (o: Occurrence) => !compact && app.canEdit && app.kind.hasStatus && !o.moment.virtual && !o.moment.repeat && o.moment.status !== 'vervallen';
 	const statusColor = (o: Occurrence) => (isOverdue(o, app.now) ? 'var(--danger)' : app.statuses.find((x) => x.id === o.moment.status)?.color ?? 'var(--muted)');
 	/** Lays the blocks out on rows, their names in `font` px (when presenting) so a block is as wide as its name. */
 	function layout(font: number) {
@@ -544,6 +544,7 @@
 					class="block"
 					class:ticked={ticks(b.it.o)}
 					class:done={b.it.o.moment.status === 'behaald'}
+					class:cut={b.it.o.moment.status === 'vervallen'}
 					class:on={focus === b.it.o.moment.id}
 					aria-current={focus === b.it.o.moment.id ? 'true' : undefined}
 					style:left="{b.left}px"
@@ -644,6 +645,9 @@
 	.tickw { position: absolute; z-index: 4; transition: left var(--ease), top var(--ease); }
 	.block.done .t { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--muted); }
 	.block.done { opacity: 0.8; }
+	/* A job that was cut: quiet, struck through, no check. */
+	.block.cut { opacity: 0.55; box-shadow: 0 0 0 1px var(--line) inset; background: transparent; }
+	.block.cut .t { text-decoration: line-through; color: var(--muted); }
 	.block .sq { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--muted); margin-right: 6px; vertical-align: 0; }
 	@media (hover: hover) {
 		.month:hover { filter: var(--hover-filter); }

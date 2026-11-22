@@ -74,6 +74,14 @@ export const KINDS: Record<TimelineKind, KindDefinition> = {
 		yearLine: (n) => (n === 0 ? 'Startjaar' : `${n} jaar sinds de start`), duration: (y) => `jaar ${y + 1}`,
 		categories: cats(['mijlpaal', 'Mijlpalen', '#C8507A'], ['klant', 'Klanten', '#2F6FD1'], ['project', 'Projecten', '#D0663A'], ['team', 'Team', '#7A5BC4'], ['overig', 'Overig', '#6B7785'])
 	},
+	game: {
+		label: 'Een game', emoji: '🎮', hint: 'Ontwikkeling en planning: mijlpalen, taken, playtests en builds', anchorLabel: 'Start van de ontwikkeling (optioneel)', mode: 'duration',
+		hasStatus: true, noAnniversary: true, statusNames: { behaald: 'Klaar', bijstellen: 'Loopt achter', vervallen: 'Geschrapt' },
+		itemLabel: 'Welke taak of mijlpaal?', defaultEmoji: '🧩', notePlaceholder: 'Wat moet erin, wie pakt het op, of wat kwam uit de test?',
+		namePlaceholder: 'Naam van de game', anchorTitle: () => 'Start van de ontwikkeling', anchorEmoji: '🚀', anniversaryTitle: '', anniversaryEmoji: '',
+		yearLine: (n) => (n === 0 ? 'Eerste jaar van de ontwikkeling' : `Jaar ${n + 1} van de ontwikkeling`), duration: (y) => `jaar ${y + 1}`,
+		categories: cats(['ontwerp', 'Ontwerp', '#7A5BC4'], ['code', 'Programmeren', '#2F6FD1'], ['art', 'Art', '#C8507A'], ['geluid', 'Geluid', '#B8860B'], ['levels', 'Levels', '#3E8E4F'], ['testen', 'Testen', '#D0663A'], ['release', 'Release', '#1F8A8A'])
+	},
 	plan: {
 		label: 'Doelen en plannen', emoji: '🎯', hint: 'Doelen en mijlpalen met status, om bij te sturen', anchorLabel: 'Start van het plan (optioneel)', mode: 'duration',
 		hasStatus: true, noAnniversary: true, namePlaceholder: 'Bijv. Plannen 2027', anchorTitle: () => 'Start van het plan', anchorEmoji: '🚩', anniversaryTitle: '', anniversaryEmoji: '',
@@ -88,7 +96,7 @@ export const KINDS: Record<TimelineKind, KindDefinition> = {
 	}
 };
 
-export const KIND_ORDER: TimelineKind[] = ['kind', 'mij', 'relatie', 'huisdier', 'huis', 'bedrijf', 'plan', 'anders'];
+export const KIND_ORDER: TimelineKind[] = ['kind', 'mij', 'relatie', 'huisdier', 'huis', 'bedrijf', 'game', 'plan', 'anders'];
 
 export const STATUSES = [
 	{ id: 'gepland', name: 'Gepland', color: '#6B7785' },

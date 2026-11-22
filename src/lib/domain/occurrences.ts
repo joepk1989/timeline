@@ -97,5 +97,6 @@ export function countdown(o: Occurrence, now: Day): string | null {
 export function whenTimeLabel(o: Occurrence): string {
 	const t = o.d != null ? o.moment.time : null;
 	if (!t) return whenLabel(o);
-	return `${whenLabel(o)} · ${t}${o.moment.endTime && !o.end ? `–${o.moment.endTime}` : ''}`;
+	const e = o.moment.endTime && !o.end && o.moment.endTime > t ? o.moment.endTime : null; // an end at or before the start is no end
+	return `${whenLabel(o)} · ${t}${e ? `–${e}` : ''}`;
 }

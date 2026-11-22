@@ -7,6 +7,7 @@ import { addMissingFestivalPhotos, demoPhotoSvg, festivalTimeline, isDemoPhoto }
 import { isScales, scalesTimeline } from '$lib/domain/scales';
 import { weekDemo, weekDemoStale } from '$lib/domain/week';
 import { renovationDemo } from '$lib/domain/renovation';
+import { gameDemo } from '$lib/domain/game';
 import { makeBackup, parseBackup } from '$lib/domain/backup';
 import { clampScope, countInScope, pickStartYear, visibleMoments, type Filter, type Scope } from '$lib/domain/view';
 import type { Moment, Status, Timeline } from '$lib/domain/types';
@@ -235,8 +236,8 @@ class AppState {
 	}
 
 	/** Loads a demo: a whole life, the festivals in the Netherlands for the coming ten years, the time scales, or one full week. */
-	async loadDemo(which: 'leven' | 'festivals' | 'tijdschalen' | 'week' | 'verbouwing' = 'leven') {
-		const { timeline, moments } = ({ leven: demoTimeline, festivals: festivalTimeline, tijdschalen: scalesTimeline, week: weekDemo, verbouwing: renovationDemo })[which](this.now, newId);
+	async loadDemo(which: 'leven' | 'festivals' | 'tijdschalen' | 'week' | 'verbouwing' | 'game' = 'leven') {
+		const { timeline, moments } = ({ leven: demoTimeline, festivals: festivalTimeline, tijdschalen: scalesTimeline, week: weekDemo, verbouwing: renovationDemo, game: gameDemo })[which](this.now, newId);
 		const existing = this.timelines.find((t) => t.demo && t.name === timeline.name);
 		if (existing) {
 			// The week demo is always this week: choosing it again makes it anew.

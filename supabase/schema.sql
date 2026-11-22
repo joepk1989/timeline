@@ -9,7 +9,7 @@ create table public.timelines (
   id          uuid primary key default gen_random_uuid(),
   owner_id    uuid not null references auth.users on delete cascade default auth.uid(),
   name        text not null check (char_length(name) between 1 and 60),
-  kind        text not null check (kind in ('kind','mij','relatie','huisdier','huis','bedrijf','plan','anders')),
+  kind        text not null check (kind in ('kind','mij','relatie','huisdier','huis','bedrijf','game','plan','anders')),
   anchor      date,
   categories  jsonb not null default '[]',
   scope_from  int  not null,
@@ -120,3 +120,7 @@ create policy "delete photos" on storage.objects for delete using (bucket_id = '
 -- Times of day on moments, for a project made before they existed:
 -- alter table public.moments add column if not exists start_time text check (start_time ~ '^\d{2}:\d{2}$');
 -- alter table public.moments add column if not exists end_time text check (end_time ~ '^\d{2}:\d{2}$');
+
+-- The kind "game", for a project made before it existed:
+-- alter table public.timelines drop constraint if exists timelines_kind_check;
+-- alter table public.timelines add constraint timelines_kind_check check (kind in ('kind','mij','relatie','huisdier','huis','bedrijf','game','plan','anders'));

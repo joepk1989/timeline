@@ -3,11 +3,12 @@
 	import { app } from '$lib/state/app.svelte';
 
 	let { onpick, label = 'Demo laden' }: { onpick?: () => void; label?: string } = $props();
-	type Demo = 'leven' | 'festivals' | 'tijdschalen' | 'week' | 'verbouwing';
+	type Demo = 'leven' | 'festivals' | 'tijdschalen' | 'week' | 'verbouwing' | 'game';
 	const DEMOS: [Demo, string][] = [
 		['leven', 'Een heel leven'],
 		['week', 'Een volle week: werk en gezin'],
 		['verbouwing', 'Een verbouwing: klussen en planning'],
+		['game', 'Een game maken: van concept tot release'],
 		['festivals', 'Festivals in Nederland'],
 		['tijdschalen', 'Tijdschalen: van eonen tot weken']
 	];
